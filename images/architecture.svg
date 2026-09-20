@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" width="640" height="220">
+  <defs>
+    <style>
+      .box { fill: #2b2b2b; stroke: #7ad0ff; stroke-width: 2; }
+      .label { fill: #f2f2f2; font-family: monospace; font-size: 16px; text-anchor: middle; }
+      .arrow { stroke: #7ad0ff; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7ad0ff" />
+    </marker>
+  </defs>
+  <rect x="10" y="80" width="140" height="60" rx="8" class="box" />
+  <text x="80" y="115" class="label">vim buffer</text>
+
+  <rect x="250" y="80" width="140" height="60" rx="8" class="box" />
+  <text x="320" y="115" class="label">mdslides</text>
+
+  <rect x="490" y="80" width="140" height="60" rx="8" class="box" />
+  <text x="560" y="105" class="label">browser</text>
+  <text x="560" y="125" class="label">(reveal.js)</text>
+
+  <path d="M150 110 H245" class="arrow" />
+  <path d="M390 110 H485" class="arrow" />
+</svg>

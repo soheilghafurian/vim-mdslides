@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>mdslides</title>
+<link rel="stylesheet" href="/vendor/reveal.css">
+<link rel="stylesheet" href="/vendor/reveal-black.css">
+<link rel="stylesheet" href="/vendor/highlight-monokai.css">
+<link rel="stylesheet" href="/vendor/katex.min.css">
+<style>
+  .reveal pre code { max-height: 70vh; }
+  .reveal .katex-display { margin: 0.5em 0; }
+  .reveal .mermaid { background: transparent; }
+  #mdslides-status {
+    position: fixed; bottom: 6px; right: 10px; z-index: 1000;
+    font: 11px monospace; color: #888; opacity: 0.6; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides" id="mdslides-slides">
+__SLIDES__
+  </div>
+</div>
+<div id="mdslides-status">mdslides: connecting&hellip;</div>
+
+<script src="/vendor/reveal.js"></script>
+<script src="/vendor/highlight.min.js"></script>
+<script src="/vendor/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+  const deck = new Reveal({
+    hash: true,
+    slideNumber: true,
+    plugins: [RevealHighlight],
+  });
+  deck.initialize().then(() => mermaid.run({ querySelector: '.mermaid' }));
+
+  const statusEl = document.getElementById('mdslides-status');
+  const slidesEl = document.getElementById('mdslides-slides');
+
+  const source = new EventSource('/events');
+  source.onopen = () => { statusEl.textContent = 'mdslides: live'; };
+  source.onerror = () => { statusEl.textContent = 'mdslides: disconnected'; };
+  source.addEventListener('update', (ev) => {
+    const { html } = JSON.parse(ev.data);
+    const indices = deck.getIndices();
+    slidesEl.innerHTML = html;
+    deck.sync();
+    const h = Math.min(indices.h, deck.getTotalSlides() - 1);
+    deck.slide(Math.max(h, 0), indices.v || 0);
+    mermaid.run({ querySelector: '.mermaid' });
+    statusEl.textContent = 'mdslides: live (updated)';
+    setTimeout(() => { statusEl.textContent = 'mdslides: live'; }, 1000);
+  });
+</script>
+</body>
+</html>
