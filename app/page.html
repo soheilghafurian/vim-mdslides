@@ -8,9 +8,21 @@
 <link rel="stylesheet" href="/vendor/highlight-monokai.css">
 <link rel="stylesheet" href="/vendor/katex.min.css">
 <style>
-  .reveal pre code { max-height: 70vh; }
   .reveal .katex-display { margin: 0.5em 0; }
   .reveal .mermaid { background: transparent; }
+  /* Each slide's real content lives in .slide-fit, an unscaled measurement
+     box that gets shrunk (never grown) via a CSS transform in JS so it
+     always fits within the slide -- see fitSlide() below. */
+  .reveal .slides section.present {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .reveal .slide-fit {
+    width: 100%;
+    transform-origin: center center;
+  }
   #mdslides-status {
     position: fixed; bottom: 6px; right: 10px; z-index: 1000;
     font: 11px monospace; color: #888; opacity: 0.6; pointer-events: none;
@@ -34,9 +46,58 @@ __SLIDES__
   const deck = new Reveal({
     hash: true,
     slideNumber: true,
+    navigationMode: 'linear',
     plugins: [RevealHighlight],
   });
-  deck.initialize().then(() => mermaid.run({ querySelector: '.mermaid' }));
+
+  // Shrinks a slide's content (text, images, diagrams -- everything) down
+  // via a CSS transform if it doesn't fit, so slides never scroll or clip.
+  // Content is never scaled *up* -- a slide with little content just shows
+  // it at normal size. Only the currently visible slide can be measured
+  // (others are display:none), so this runs on demand rather than upfront.
+  function fitSlide(section) {
+    if (!section) return;
+    const fit = section.querySelector(':scope > .slide-fit');
+    if (!fit) return;
+
+    fit.style.transform = 'none';
+
+    const style = getComputedStyle(section);
+    const availW = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const availH = section.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    const scale = Math.min(1, availW / fit.scrollWidth, availH / fit.scrollHeight);
+
+    if (isFinite(scale) && scale < 1) {
+      fit.style.transform = `scale(${scale})`;
+    }
+  }
+
+  function fitCurrentSlide() {
+    fitSlide(deck.getCurrentSlide());
+  }
+
+  // Images affect content height only once they've loaded; refit when they
+  // do (harmless no-op if the slide already fit without them).
+  function watchImages(section) {
+    section.querySelectorAll('img').forEach((img) => {
+      if (!img.complete) {
+        img.addEventListener('load', fitCurrentSlide, { once: true });
+      }
+    });
+  }
+
+  deck.initialize().then(() => {
+    fitCurrentSlide();
+    watchImages(deck.getCurrentSlide());
+    mermaid.run({ querySelector: '.mermaid' }).then(fitCurrentSlide);
+  });
+
+  deck.on('slidechanged', (event) => {
+    fitSlide(event.currentSlide);
+    watchImages(event.currentSlide);
+  });
+
+  window.addEventListener('resize', fitCurrentSlide);
 
   const statusEl = document.getElementById('mdslides-status');
   const slidesEl = document.getElementById('mdslides-slides');
@@ -51,7 +112,9 @@ __SLIDES__
     deck.sync();
     const h = Math.min(indices.h, deck.getTotalSlides() - 1);
     deck.slide(Math.max(h, 0), indices.v || 0);
-    mermaid.run({ querySelector: '.mermaid' });
+    mermaid.run({ querySelector: '.mermaid' }).then(fitCurrentSlide);
+    fitCurrentSlide();
+    watchImages(deck.getCurrentSlide());
     statusEl.textContent = 'mdslides: live (updated)';
     setTimeout(() => { statusEl.textContent = 'mdslides: live'; }, 1000);
   });

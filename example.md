@@ -12,16 +12,33 @@ Press `:P` to toggle the presentation.
 
 # Headings become slides
 
-Any `#` heading starts a new slide.
+Any `#` heading starts a new slide. The deck is strictly
+linear -- just space / arrow-right to move forward, arrow-left
+to go back. There's no up/down grid to get lost in.
 
-## This is a sub-slide
+## Deeper headings stay on the same slide
 
-Deeper headings (`##`, `###`, ...) become vertical
-sub-slides nested under the last top-level slide.
+`##`, `###`, and so on don't start a new slide -- they're just
+normal sub-headings within the current one. Set
+`g:mdslides_slide_level` above 1 if you want `##` to start new
+slides too.
 
-## Another sub-slide
+# Content auto-fits the slide
 
-Press `j`/`down` in the browser to move between these.
+If a slide's content is too big to fit, the whole thing --
+text, images, diagrams -- shrinks down to fit. It never scrolls
+or gets cut off. This slide is deliberately packed to show it:
+
+- reveal.js turns markdown into a browser presentation
+- mdslides splits it into slides by heading, one after another
+- a small local server pushes live updates over the network
+- KaTeX renders any LaTeX math you write
+- mermaid.js renders fenced ` ```mermaid ` code blocks as diagrams
+- images resolve relative to the markdown file itself
+- and none of that requires an internet connection to work
+
+If it shrinks past readable, that's the signal to trim the
+slide's content -- mdslides won't do that part for you.
 
 # Code blocks work too
 
@@ -64,8 +81,6 @@ Relative image paths resolve against the markdown file's own
 directory, just like a normal markdown previewer.
 
 ![simple architecture diagram](images/architecture.svg)
-
-## Another image, on its own sub-slide
 
 ![gradient sample card](images/gradient-card.svg)
 

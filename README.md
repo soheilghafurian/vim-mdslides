@@ -18,11 +18,19 @@ Plugin 'soheilghafurian/vim-mdslides'
 
 - `:MDSlidesStart` — render the current markdown buffer as slides and open
   it in your browser. Every heading at or above `g:mdslides_slide_level`
-  (default `1`, i.e. `#`) starts a new slide; deeper headings become
-  vertical sub-slides. The deck live-updates in the browser as you edit and
-  save, without a manual refresh.
+  (default `1`, i.e. `#`) starts a new slide; deeper headings stay on the
+  current slide as regular sub-headings. The deck live-updates in the
+  browser as you edit and save, without a manual refresh.
 - `:MDSlidesStop` — stop the presentation server.
 - `:MDSlidesToggle` — toggle between the two.
+
+The deck is strictly linear — space / → to move forward, ← to go back.
+There's no grid of slides going in two directions to navigate.
+
+If a slide's content doesn't fit, everything on it (text, images, diagrams)
+is scaled down together until it does. Nothing scrolls or gets clipped; if
+it shrinks to the point of being unreadable, that's a sign to trim the
+slide's content, not something mdslides fixes for you.
 
 Also supported, same as a regular markdown file:
 

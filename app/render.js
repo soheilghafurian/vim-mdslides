@@ -48,54 +48,52 @@ function unstashMath(html) {
   return html.replace(/MATH(\d+)/g, (_, i) => mathPlaceholders[Number(i)]);
 }
 
-// Walk the token stream and cut it into slides. A heading whose level is
-// <= slideLevel starts a new horizontal slide; a heading deeper than that
-// starts a new vertical (nested) slide under the current horizontal one.
+// Walk the token stream and cut it into slides, all in a single linear
+// sequence (no vertical/nested slides -- presenting only ever goes forward).
+// A heading whose level is <= slideLevel starts a new slide; a heading
+// deeper than that just continues on the current slide as a normal
+// sub-heading.
 function splitIntoSlides(tokens, slideLevel) {
-  const horizontals = [[]]; // array of vertical-slide arrays of tokens
-  let current = horizontals[0];
-  let verticals = [current];
-  horizontals[0] = verticals;
+  const slides = [[]];
+  let current = slides[0];
 
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
     if (tok.type === 'heading_open') {
       const level = Number(tok.tag.slice(1)); // 'h1' -> 1
       if (level <= slideLevel) {
-        verticals = [[]];
-        horizontals.push(verticals);
-        current = verticals[0];
-      } else {
         current = [];
-        verticals.push(current);
+        slides.push(current);
       }
     }
     current.push(tok);
   }
 
   // Drop the empty slide that precedes the very first heading, if any.
-  if (horizontals.length > 1 && horizontals[0][0].length === 0) {
-    horizontals.shift();
+  if (slides.length > 1 && slides[0].length === 0) {
+    slides.shift();
   }
 
-  return horizontals;
+  return slides;
 }
 
 function renderSlidesHtml(markdownSource, slideLevel) {
   const stashed = stashMath(markdownSource);
   const tokens = md.parse(stashed, {});
-  const horizontals = splitIntoSlides(tokens, slideLevel);
+  const slides = splitIntoSlides(tokens, slideLevel);
 
-  const sectionsHtml = horizontals
-    .map((verticals) => {
-      const verticalSections = verticals
-        .map((slideTokens) => `<section>${md.renderer.render(slideTokens, md.options, {})}</section>`)
-        .join('\n');
-      return verticals.length > 1 ? `<section>\n${verticalSections}\n</section>` : verticalSections;
-    })
+  // Each slide's content is wrapped in a fixed-size, unscaled
+  // measurement box (.slide-fit) so the client can measure its natural
+  // size and shrink it down (via CSS transform) to fit the slide if it
+  // overflows -- see the fit logic in page.html.
+  const sectionsHtml = slides
+    .map(
+      (slideTokens) =>
+        `<section><div class="slide-fit">${md.renderer.render(slideTokens, md.options, {})}</div></section>`
+    )
     .join('\n');
 
-  const html = sectionsHtml || '<section><h1>Empty presentation</h1></section>';
+  const html = sectionsHtml || '<section><div class="slide-fit"><h1>Empty presentation</h1></div></section>';
   return unstashMath(html);
 }
 
