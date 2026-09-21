@@ -16,12 +16,11 @@ Any `#` heading starts a new slide. The deck is strictly
 linear -- just space / arrow-right to move forward, arrow-left
 to go back. There's no up/down grid to get lost in.
 
-## Deeper headings stay on the same slide
+## Deeper headings are slides too
 
-`##`, `###`, and so on don't start a new slide -- they're just
-normal sub-headings within the current one. Set
-`g:mdslides_slide_level` above 1 if you want `##` to start new
-slides too.
+`##`, `###`, and every other heading level each start their own
+slide, same as `#`. There's no vertical nesting -- everything is
+just one slide after another.
 
 # Content auto-fits the slide
 
@@ -33,7 +32,6 @@ or gets cut off. This slide is deliberately packed to show it:
 - mdslides splits it into slides by heading, one after another
 - a small local server pushes live updates over the network
 - KaTeX renders any LaTeX math you write
-- mermaid.js renders fenced ` ```mermaid ` code blocks as diagrams
 - images resolve relative to the markdown file itself
 - and none of that requires an internet connection to work
 

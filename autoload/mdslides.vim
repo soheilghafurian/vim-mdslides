@@ -7,12 +7,6 @@ if !exists('g:mdslides_port')
   let g:mdslides_port = 8890
 endif
 
-if !exists('g:mdslides_slide_level')
-  " Headings at or above this level start a new (horizontal) slide;
-  " deeper headings become vertical sub-slides.
-  let g:mdslides_slide_level = 1
-endif
-
 if !exists('g:mdslides_open_browser_cmd')
   if has('mac') || has('macunix')
     let g:mdslides_open_browser_cmd = 'open'
@@ -98,7 +92,7 @@ function! mdslides#start() abort
 
   let l:server_js = s:app_dir . '/server.js'
   let l:assets_dir = expand('%:p:h')
-  let l:cmd = ['node', l:server_js, s:tempfile, string(g:mdslides_port), string(g:mdslides_slide_level), l:assets_dir]
+  let l:cmd = ['node', l:server_js, s:tempfile, string(g:mdslides_port), l:assets_dir]
   let l:url = 'http://127.0.0.1:' . g:mdslides_port . '/'
   let s:browser_opened = 0
 

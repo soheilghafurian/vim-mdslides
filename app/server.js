@@ -5,13 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const { renderSlidesHtml } = require('./render');
 
-const [, , sourcePath, portArg, slideLevelArg, assetsDirArg] = process.argv;
+const [, , sourcePath, portArg, assetsDirArg] = process.argv;
 const port = Number(portArg) || 8890;
-const slideLevel = Number(slideLevelArg) || 1;
 const assetsDir = assetsDirArg || path.dirname(sourcePath);
 
 if (!sourcePath) {
-  console.error('usage: node server.js <source-file> <port> [slide-level] [assets-dir]');
+  console.error('usage: node server.js <source-file> <port> [assets-dir]');
   process.exit(1);
 }
 
@@ -38,7 +37,7 @@ const sseClients = new Set();
 
 function currentSlidesHtml() {
   const source = fs.readFileSync(sourcePath, 'utf8');
-  return renderSlidesHtml(source, slideLevel);
+  return renderSlidesHtml(source);
 }
 
 function broadcastUpdate() {

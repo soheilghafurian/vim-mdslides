@@ -49,22 +49,17 @@ function unstashMath(html) {
 }
 
 // Walk the token stream and cut it into slides, all in a single linear
-// sequence (no vertical/nested slides -- presenting only ever goes forward).
-// A heading whose level is <= slideLevel starts a new slide; a heading
-// deeper than that just continues on the current slide as a normal
-// sub-heading.
-function splitIntoSlides(tokens, slideLevel) {
+// sequence (no vertical/nested slides -- presenting only ever goes
+// forward). Every heading, at any level, starts a new slide.
+function splitIntoSlides(tokens) {
   const slides = [[]];
   let current = slides[0];
 
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
     if (tok.type === 'heading_open') {
-      const level = Number(tok.tag.slice(1)); // 'h1' -> 1
-      if (level <= slideLevel) {
-        current = [];
-        slides.push(current);
-      }
+      current = [];
+      slides.push(current);
     }
     current.push(tok);
   }
@@ -77,10 +72,10 @@ function splitIntoSlides(tokens, slideLevel) {
   return slides;
 }
 
-function renderSlidesHtml(markdownSource, slideLevel) {
+function renderSlidesHtml(markdownSource) {
   const stashed = stashMath(markdownSource);
   const tokens = md.parse(stashed, {});
-  const slides = splitIntoSlides(tokens, slideLevel);
+  const slides = splitIntoSlides(tokens);
 
   // Each slide's content is wrapped in a fixed-size, unscaled
   // measurement box (.slide-fit) so the client can measure its natural

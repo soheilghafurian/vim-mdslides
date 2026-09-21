@@ -17,10 +17,9 @@ Plugin 'soheilghafurian/vim-mdslides'
 ## Usage
 
 - `:MDSlidesStart` — render the current markdown buffer as slides and open
-  it in your browser. Every heading at or above `g:mdslides_slide_level`
-  (default `1`, i.e. `#`) starts a new slide; deeper headings stay on the
-  current slide as regular sub-headings. The deck live-updates in the
-  browser as you edit and save, without a manual refresh.
+  it in your browser. Every heading, at any level (`#` through `######`),
+  starts a new slide. The deck live-updates in the browser as you edit and
+  save, without a manual refresh.
 - `:MDSlidesStop` — stop the presentation server.
 - `:MDSlidesToggle` — toggle between the two.
 
@@ -51,6 +50,5 @@ autocmd FileType markdown command! -buffer P MDSlidesToggle
 
 ```vim
 let g:mdslides_port = 8890            " local server port
-let g:mdslides_slide_level = 1        " heading level that starts a new slide
 let g:mdslides_open_browser_cmd = 'xdg-open'  " override the browser-open command
 ```
