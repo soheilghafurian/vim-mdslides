@@ -52,6 +52,12 @@ __SLIDES__
     hash: true,
     slideNumber: true,
     navigationMode: 'linear',
+    // Reveal's default 960x700 canvas is ~4:3 and gets letterboxed with
+    // big empty bars on either side of any wider (e.g. 16:9) browser
+    // window. Sizing the canvas to the viewport itself instead means it
+    // always fills the available space.
+    width: '100%',
+    height: '100%',
     // We center slide content ourselves via the flex box on
     // section.present (and scale it to fit via fitSlide() below), so
     // reveal's own JS-driven vertical centering must stay off -- otherwise
