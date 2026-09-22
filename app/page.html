@@ -62,9 +62,16 @@ __SLIDES__
 
     fit.style.transform = 'none';
 
+    // section itself is absolutely-positioned with no explicit height, so it
+    // auto-sizes to its own content -- measuring against it would compare
+    // content to itself and never detect overflow. The real fixed slide
+    // canvas (reveal's configured width/height) is the .slides container,
+    // which reveal.js does give an explicit pixel size.
+    const slides = section.closest('.slides');
+    if (!slides) return;
     const style = getComputedStyle(section);
-    const availW = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const availH = section.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    const availW = slides.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const availH = slides.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     const scale = Math.min(1, availW / fit.scrollWidth, availH / fit.scrollHeight);
 
     if (isFinite(scale) && scale < 1) {
