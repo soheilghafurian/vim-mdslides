@@ -12,21 +12,15 @@ Press `:P` to toggle the presentation.
 
 # Headings become slides
 
-Any `#` heading starts a new slide. The deck is strictly
-linear -- just space / arrow-right to move forward, arrow-left
-to go back. There's no up/down grid to get lost in.
+Any `#` heading starts a new slide. The deck is strictly linear -- just space / arrow-right to move forward, arrow-left to go back. There's no up/down grid to get lost in.
 
 ## Deeper headings are slides too
 
-`##`, `###`, and every other heading level each start their own
-slide, same as `#`. There's no vertical nesting -- everything is
-just one slide after another.
+`##`, `###`, and every other heading level each start their own slide, same as `#`. There's no vertical nesting -- everything is just one slide after another.
 
 # Content auto-fits the slide
 
-If a slide's content is too big to fit, the whole thing --
-text, images, diagrams -- shrinks down to fit. It never scrolls
-or gets cut off. This slide is deliberately packed to show it:
+If a slide's content is too big to fit, the whole thing -- text, images, diagrams -- shrinks down to fit. It never scrolls or gets cut off. This slide is deliberately packed to show it:
 
 - reveal.js turns markdown into a browser presentation
 - mdslides splits it into slides by heading, one after another
@@ -35,8 +29,7 @@ or gets cut off. This slide is deliberately packed to show it:
 - images resolve relative to the markdown file itself
 - and none of that requires an internet connection to work
 
-If it shrinks past readable, that's the signal to trim the
-slide's content -- mdslides won't do that part for you.
+If it shrinks past readable, that's the signal to trim the slide's content -- mdslides won't do that part for you.
 
 # Code blocks work too
 
@@ -75,8 +68,7 @@ graph TD
 
 # Images work too
 
-Relative image paths resolve against the markdown file's own
-directory, just like a normal markdown previewer.
+Relative image paths resolve against the markdown file's own directory, just like a normal markdown previewer.
 
 ![simple architecture diagram](images/architecture.svg)
 
@@ -84,9 +76,7 @@ directory, just like a normal markdown previewer.
 
 # A very long text slide
 
-This slide exists to stress-test text-only auto-fit -- it should
-shrink down to fit entirely on one page, never scroll, and never get
-cut off, no matter how much is here.
+This slide exists to stress-test text-only auto-fit -- it should shrink down to fit entirely on one page, never scroll, and never get cut off, no matter how much is here.
 
 - The quick brown fox jumps over the lazy dog near the riverbank at dawn.
 - A small local server watches the markdown file and pushes live updates.
@@ -109,19 +99,13 @@ cut off, no matter how much is here.
 - Oversized content shrinking is uniform -- width and height scale by the same factor.
 - None of this scaling ever changes the underlying markdown, just how it's displayed.
 
-If you can read this comfortably, the content fit without much
-shrinking. If it's tiny, that's auto-fit doing its job on a
-deliberately overloaded slide.
+If you can read this comfortably, the content fit without much shrinking. If it's tiny, that's auto-fit doing its job on a deliberately overloaded slide.
 
 # A very long mixed-content slide
 
-Text, images, a mermaid diagram, and math formulae all crammed onto
-one slide, to check that auto-fit shrinks *everything* together and
-keeps it all on one page.
+Text, images, a mermaid diagram, and math formulae all crammed onto one slide, to check that auto-fit shrinks *everything* together and keeps it all on one page.
 
-Inline math warms things up: $E = mc^2$, and the golden ratio
-$\varphi = \frac{1 + \sqrt{5}}{2}$, and a limit
-$\lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n = e$.
+Inline math warms things up: $E = mc^2$, and the golden ratio $\varphi = \frac{1 + \sqrt{5}}{2}$, and a limit $\lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n = e$.
 
 - First, some filler bullets to add bulk to the slide
 - reveal.js, markdown-it, KaTeX, mermaid, and highlight.js are all vendored
@@ -130,8 +114,7 @@ $\lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n = e$.
 
 ![simple architecture diagram](images/architecture.svg)
 
-More text between the images and the diagram, to mix things up
-further and add even more height to this already-tall slide.
+More text between the images and the diagram, to mix things up further and add even more height to this already-tall slide.
 
 ```mermaid
 graph TD
@@ -146,21 +129,17 @@ graph TD
 
 ![gradient sample card](images/gradient-card.svg)
 
-And a closing display equation, just to make sure KaTeX block math
-also survives the shrink:
+And a closing display equation, just to make sure KaTeX block math also survives the shrink:
 
 $$
 \sum_{i=1}^n i^3 = \left( \frac{n(n+1)}{2} \right)^2
 $$
 
-That should be more than enough on one slide to force a noticeable
-shrink.
+That should be more than enough on one slide to force a noticeable shrink.
 
 # Try editing me
 
-Change this heading, add a bullet below, or add a
-brand new `#` slide -- watch the browser update without
-a manual refresh.
+Change this heading, add a bullet below, or add a brand new `#` slide -- watch the browser update without a manual refresh.
 
 - edit
 - save
