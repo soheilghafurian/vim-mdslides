@@ -49,6 +49,6 @@ autocmd FileType markdown command! -buffer P MDSlidesToggle
 ## Config
 
 ```vim
-let g:mdslides_port = 8890            " local server port
+let g:mdslides_port = 0               " local server port, 0 = pick one automatically
 let g:mdslides_open_browser_cmd = 'xdg-open'  " override the browser-open command
 ```

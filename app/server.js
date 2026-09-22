@@ -6,7 +6,11 @@ const path = require('path');
 const { renderSlidesHtml } = require('./render');
 
 const [, , sourcePath, portArg, assetsDirArg] = process.argv;
-const port = Number(portArg) || 8890;
+// 0 (the default) tells Node to bind an OS-assigned free port, so each
+// mdslides instance (one per Vim buffer presenting at once) gets its own
+// server without colliding on a shared fixed port.
+const parsedPort = Number(portArg);
+const port = Number.isNaN(parsedPort) ? 0 : parsedPort;
 const assetsDir = assetsDirArg || path.dirname(sourcePath);
 
 if (!sourcePath) {
@@ -120,8 +124,17 @@ const server = http.createServer((req, res) => {
   res.end('not found');
 });
 
+server.on('error', (err) => {
+  console.error(`mdslides: failed to start server: ${err.message}`);
+  process.exit(1);
+});
+
 server.listen(port, '127.0.0.1', () => {
-  console.log(`mdslides server listening on http://127.0.0.1:${port}`);
+  // The autoload/mdslides.vim side parses this exact line to learn which
+  // port got bound (relevant when port is 0 / OS-assigned) before it opens
+  // the browser -- keep the "listening on http://..." wording in sync with
+  // the pattern matched there if either side changes.
+  console.log(`mdslides server listening on http://127.0.0.1:${server.address().port}`);
 });
 
 process.on('SIGTERM', () => process.exit(0));
