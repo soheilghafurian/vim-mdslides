@@ -46,3 +46,4 @@ There's no automated test suite. To check a change:
 ## Rules
 
 - Do not commit or push anything unless you are told to.
+- You do not test on anything that the user is using. It mean you do not do things like open the file in the browser to get screenshots. You are able to create things without doing tests like that. Leave the GUI alone.
