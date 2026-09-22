@@ -6,7 +6,7 @@ z SPECS
 - [x] Every heading (`#`-`######`) starts a new slide
 - [x] Deck is strictly linear (space/→ forward, ← back), no grid navigation
 - [x] Live-updates in the browser on buffer edit/save, no manual refresh
-- [x] Oversized slide content auto-scales down to fit, never scrolls or clips: This is not working
+- [x] Oversized slide content auto-scales down to fit, never scrolls or clips
 - [x] LaTeX math (`$inline$` and `$$block$$`), rendered server-side with KaTeX
 - [x] Mermaid diagrams via ` ```mermaid ` fenced code blocks
 - [x] Relative image paths resolve against the markdown file's directory

@@ -13,11 +13,16 @@
   /* Each slide's real content lives in .slide-fit, an unscaled measurement
      box that gets shrunk (never grown) via a CSS transform in JS so it
      always fits within the slide -- see fitSlide() below. */
+  /* display itself is NOT set here: reveal.js forces an inline
+     style.display on the active section (its "display" config option,
+     default "block"), which always wins over any stylesheet rule here
+     regardless of specificity. We set display via that config option
+     instead (below) so it actually takes effect. */
   .reveal .slides section.present {
-    display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    height: 100%;
   }
   .reveal .slide-fit {
     width: 100%;
@@ -47,6 +52,16 @@ __SLIDES__
     hash: true,
     slideNumber: true,
     navigationMode: 'linear',
+    // We center slide content ourselves via the flex box on
+    // section.present (and scale it to fit via fitSlide() below), so
+    // reveal's own JS-driven vertical centering must stay off -- otherwise
+    // it fights our fixed-height section, offsetting/clipping oversized
+    // content before fitSlide gets a chance to shrink it.
+    center: false,
+    // reveal.js sets this as an inline style on the active section, which
+    // beats any CSS rule -- so this is how section.present actually
+    // becomes a flex container (see the CSS comment above).
+    display: 'flex',
     plugins: [RevealHighlight],
   });
 
@@ -62,11 +77,11 @@ __SLIDES__
 
     fit.style.transform = 'none';
 
-    // section itself is absolutely-positioned with no explicit height, so it
-    // auto-sizes to its own content -- measuring against it would compare
-    // content to itself and never detect overflow. The real fixed slide
-    // canvas (reveal's configured width/height) is the .slides container,
-    // which reveal.js does give an explicit pixel size.
+    // section's height:100% just matches whatever .slides is sized to, so
+    // measuring against section itself would compare content to a moving
+    // target. The real fixed slide canvas (reveal's configured
+    // width/height) is the .slides container, which reveal.js gives an
+    // explicit pixel size.
     const slides = section.closest('.slides');
     if (!slides) return;
     const style = getComputedStyle(section);
