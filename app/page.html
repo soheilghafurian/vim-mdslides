@@ -10,6 +10,12 @@
 <style>
   .reveal .katex-display { margin: 0.5em 0; }
   .reveal .mermaid { background: transparent; }
+  /* reveal.css defaults .reveal .slides to text-align:center, centering
+     every heading, paragraph, and list item. Override it so slide text
+     reads left-aligned, like a normal document. */
+  .reveal .slides {
+    text-align: left;
+  }
   /* Each slide's real content lives in .slide-fit, an unscaled measurement
      box that gets shrunk (never grown) via a CSS transform in JS so it
      always fits within the slide -- see fitSlide() below. */
