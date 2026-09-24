@@ -209,7 +209,11 @@ function! mdslides#sync() abort
 endfunction
 
 function! mdslides#toggle() abort
-  if s:is_running()
+  " Only stop if the buffer we're toggling from is the one actually being
+  " presented -- otherwise (nothing running, or a *different* buffer is
+  " being presented) switch straight to presenting the current buffer,
+  " rather than requiring a stop-then-start dance to change buffers.
+  if s:is_running() && s:bufnr == bufnr('%')
     call mdslides#stop()
   else
     call mdslides#start()
