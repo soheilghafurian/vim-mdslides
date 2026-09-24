@@ -3,7 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { renderSlidesHtml } = require('./render');
+const { renderSlidesHtml, slideIndexForLine } = require('./render');
 
 const [, , sourcePath, portArg, assetsDirArg] = process.argv;
 // 0 (the default) tells Node to bind an OS-assigned free port, so each
@@ -79,6 +79,28 @@ const server = http.createServer((req, res) => {
     const page = pageTemplate.replace('__SLIDES__', html);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(page);
+    return;
+  }
+
+  // Cursor-follow mode (opt-in via g:mdslides_follow_cursor): the Vim side
+  // hits this on every cursor move, telling connected browsers which slide
+  // the cursor is now under.
+  if (req.url.startsWith('/cursor')) {
+    const line = Number(new URL(req.url, 'http://localhost').searchParams.get('line')) || 1;
+    let index;
+    try {
+      index = slideIndexForLine(fs.readFileSync(sourcePath, 'utf8'), line);
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(`mdslides: failed to compute slide index: ${err.message}`);
+      return;
+    }
+    const payload = `event: goto\ndata: ${JSON.stringify({ index })}\n\n`;
+    for (const client of sseClients) {
+      client.write(payload);
+    }
+    res.writeHead(204);
+    res.end();
     return;
   }
 

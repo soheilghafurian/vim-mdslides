@@ -7,6 +7,7 @@ browser, one slide per heading — like `:MarkdownPreview`, but for slides.
 
 - Vim or Neovim with `+job`/`+channel` support (or Neovim, which always has it)
 - `node` on your `$PATH`
+- `curl` on your `$PATH`, only if you enable `g:mdslides_follow_cursor`
 
 ## Install (Vundle)
 
@@ -51,4 +52,11 @@ autocmd FileType markdown command! -buffer P MDSlidesToggle
 ```vim
 let g:mdslides_port = 0               " local server port, 0 = pick one automatically
 let g:mdslides_open_browser_cmd = 'xdg-open'  " override the browser-open command
+let g:mdslides_follow_cursor = 0      " 1 = jump to whatever slide the cursor is under
 ```
+
+`g:mdslides_follow_cursor` makes the cursor the sole driver of slide
+position: moving it in the buffer jumps the browser to that slide, but that
+also means manual arrow-key navigation in the browser gets overridden on the
+next cursor move. It's off by default for that reason, and requires `curl`
+on your `$PATH`.

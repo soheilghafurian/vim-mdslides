@@ -11,6 +11,7 @@ z SPECS
 - [x] Mermaid diagrams via ` ```mermaid ` fenced code blocks
 - [x] Relative image paths resolve against the markdown file's directory
 - [x] Works with both Vim (`+job`/`+channel`) and Neovim
+- [x] Optional cursor-follow mode (`g:mdslides_follow_cursor`): moving the cursor jumps the browser to that slide
 - [ ] Code block syntax highlighting
 - [ ] Slide numbering / progress indicator
 - [ ] Hierarchical tree of the slides on the side. It should be able to hidden or shown during the presentation.

@@ -139,6 +139,16 @@ __SLIDES__
   const source = new EventSource('/events');
   source.onopen = () => { statusEl.textContent = 'mdslides: live'; };
   source.onerror = () => { statusEl.textContent = 'mdslides: disconnected'; };
+  // Cursor-follow mode (opt-in on the Vim side via g:mdslides_follow_cursor):
+  // jump to whatever slide the server says the cursor is currently under.
+  // A no-op unless the Vim side is actually sending /cursor requests.
+  source.addEventListener('goto', (ev) => {
+    const { index } = JSON.parse(ev.data);
+    if (Number.isInteger(index) && index >= 0 && index < deck.getTotalSlides()) {
+      deck.slide(index, 0);
+    }
+  });
+
   source.addEventListener('update', (ev) => {
     const { html } = JSON.parse(ev.data);
     const indices = deck.getIndices();

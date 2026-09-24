@@ -72,6 +72,36 @@ function splitIntoSlides(tokens) {
   return slides;
 }
 
+// The line (0-indexed, from markdown-it's token.map) each slide starts on,
+// mirroring splitIntoSlides' own rule for what counts as a separate slide:
+// a heading always starts one, and any content before the very first
+// heading is its own leading slide (only if that content actually exists).
+function slideStartLines(markdownSource) {
+  const tokens = md.parse(markdownSource, {});
+  const headingLines = tokens
+    .filter((tok) => tok.type === 'heading_open' && tok.map)
+    .map((tok) => tok.map[0]);
+  const firstHeadingIndex = tokens.findIndex((tok) => tok.type === 'heading_open');
+  const hasPreamble = firstHeadingIndex > 0;
+  return hasPreamble ? [0, ...headingLines] : headingLines;
+}
+
+// Maps a 1-indexed buffer line (as Vim reports cursor position) to the
+// index of the slide that line falls under, for cursor-follow mode.
+function slideIndexForLine(markdownSource, line) {
+  const starts = slideStartLines(markdownSource);
+  const line0 = Math.max(0, line - 1);
+  let index = 0;
+  for (let i = 0; i < starts.length; i++) {
+    if (starts[i] <= line0) {
+      index = i;
+    } else {
+      break;
+    }
+  }
+  return index;
+}
+
 function renderSlidesHtml(markdownSource) {
   const stashed = stashMath(markdownSource);
   const tokens = md.parse(stashed, {});
@@ -92,4 +122,4 @@ function renderSlidesHtml(markdownSource) {
   return unstashMath(html);
 }
 
-module.exports = { renderSlidesHtml };
+module.exports = { renderSlidesHtml, slideIndexForLine };
