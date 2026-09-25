@@ -68,15 +68,23 @@ fs.watch(sourcePath, { persistent: true }, () => scheduleUpdate());
 
 const server = http.createServer((req, res) => {
   if (req.url === '/' || req.url.startsWith('/?')) {
+    let source;
     let html;
     try {
-      html = currentSlidesHtml();
+      source = fs.readFileSync(sourcePath, 'utf8');
+      html = renderSlidesHtml(source);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end(`mdslides: failed to render source: ${err.message}`);
       return;
     }
-    const page = pageTemplate.replace('__SLIDES__', html);
+    // The Vim side opens the browser at ?line=<cursor line>, telling us
+    // which slide to land on initially instead of always the first one.
+    const lineParam = new URL(req.url, 'http://localhost').searchParams.get('line');
+    const initialIndex = lineParam ? slideIndexForLine(source, Number(lineParam)) : 0;
+    const page = pageTemplate
+      .replace('__SLIDES__', html)
+      .replace('__INITIAL_INDEX__', JSON.stringify(initialIndex));
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(page);
     return;

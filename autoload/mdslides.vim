@@ -36,6 +36,7 @@ let s:bufnr = -1
 let s:browser_opened = 0
 let s:port = 0
 let s:cursor_timer = -1
+let s:initial_line = 1
 
 function! s:log(msg) abort
   echom '[mdslides] ' . a:msg
@@ -76,7 +77,9 @@ function! s:try_open_from_output(text) abort
   let s:browser_opened = 1
   let s:port = str2nr(l:m[2])
   call s:log('presentation at ' . l:m[1])
-  call s:open_browser(l:m[1])
+  " Open on the slide the cursor was on when :MDSlidesStart was invoked,
+  " rather than always the first slide.
+  call s:open_browser(l:m[1] . '?line=' . s:initial_line)
 endfunction
 
 function! s:on_nvim_stdout(job_id, data, event) abort
@@ -159,6 +162,7 @@ function! mdslides#start() abort
   call mdslides#stop()
 
   let s:bufnr = bufnr('%')
+  let s:initial_line = line('.')
   let s:tempfile = tempname() . '.mdslides.md'
   call s:write_buffer_to_temp()
 
