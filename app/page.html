@@ -54,6 +54,19 @@ __SLIDES__
 <script>
   mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
+  // Set server-side from the cursor line Vim was on when :MDSlidesStart
+  // ran. Reveal (hash: true, below) reads location.hash as part of its own
+  // initialize() to decide which slide to land on, so seeding the hash
+  // *before* constructing/initializing it is what makes the deck open on
+  // that slide -- setting it via deck.slide() afterwards is a race against
+  // Reveal's own initial hash read and gets clobbered.
+  {
+    const initialIndex = __INITIAL_INDEX__;
+    if (Number.isInteger(initialIndex) && initialIndex > 0 && !location.hash) {
+      location.hash = '/' + initialIndex;
+    }
+  }
+
   const deck = new Reveal({
     hash: true,
     slideNumber: true,
@@ -120,14 +133,7 @@ __SLIDES__
     });
   }
 
-  // Set server-side from the cursor line Vim was on when :MDSlidesStart
-  // ran, so the deck opens on that slide instead of always the first one.
-  const initialIndex = __INITIAL_INDEX__;
-
   deck.initialize().then(() => {
-    if (Number.isInteger(initialIndex) && initialIndex > 0 && initialIndex < deck.getTotalSlides()) {
-      deck.slide(initialIndex, 0);
-    }
     fitCurrentSlide();
     watchImages(deck.getCurrentSlide());
     mermaid.run({ querySelector: '.mermaid' }).then(fitCurrentSlide);
