@@ -18,6 +18,22 @@ Any `#` heading starts a new slide. The deck is strictly linear -- just space / 
 
 `##`, `###`, and every other heading level each start their own slide, same as `#`. There's no vertical nesting -- everything is just one slide after another.
 
+### An even deeper heading
+
+Level three still just starts another slide -- no different from `#` or `##`. It only shows up as a deeper branch in the outline panel's tree view.
+
+#### And one level deeper again
+
+Same rule at `####`: just another slide.
+
+##### Five levels deep
+
+Still just a slide, five headings deep. A good stress-test for how the outline's tree connectors handle a long unbroken chain.
+
+## Back to a second-level heading
+
+Siblings at the same level after a deeper branch work the same way -- the outline should show this as a sibling of "Deeper headings are slides too", not a child of the fifth-level heading above.
+
 # Content auto-fits the slide
 
 If a slide's content is too big to fit, the whole thing -- text, images, diagrams -- shrinks down to fit. It never scrolls or gets cut off. This slide is deliberately packed to show it:

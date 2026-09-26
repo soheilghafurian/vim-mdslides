@@ -92,8 +92,36 @@
   #mdslides-outline-full a.focused {
     background: rgba(255, 255, 255, 0.12);
   }
-  #mdslides-outline-full a.current {
-    color: #fff; font-weight: bold;
+  /* Tree connector prefix (|, +--, `--) marking each row's ancestry -- see
+     computeTreeGuides() in the script. Monospace + `white-space: pre` so
+     the connector glyphs and the spaces between them line up into
+     continuous vertical bars across rows, which a proportional font (or
+     collapsed whitespace) would break. */
+  #mdslides-outline-full .tree-guides {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+    color: rgba(255, 255, 255, 0.3);
+  }
+  /* Typography steps down by heading level so hierarchy reads at a glance,
+     not just from indentation: top-level headings are bold and largest,
+     each level below is a little smaller and dimmer. */
+  #mdslides-outline-full .tree-label {
+    font-size: 0.85em; font-weight: 400; opacity: 0.65;
+  }
+  #mdslides-outline-full a[data-level="0"] .tree-label,
+  #mdslides-outline-full a[data-level="1"] .tree-label {
+    font-size: 1.15em; font-weight: 700; opacity: 1;
+  }
+  #mdslides-outline-full a[data-level="2"] .tree-label {
+    font-size: 1em; font-weight: 600; opacity: 0.92;
+  }
+  #mdslides-outline-full a[data-level="3"] .tree-label {
+    font-size: 0.9em; font-weight: 400; opacity: 0.8;
+  }
+  /* Overrides the level-based dimming above -- must come after it in
+     source order since both are equally specific (attribute + class). */
+  #mdslides-outline-full a.current .tree-label {
+    color: #fff; opacity: 1; font-weight: 700;
   }
   #mdslides-outline-full-toggle {
     position: fixed; top: 8px; left: 50px; z-index: 960;
@@ -264,11 +292,40 @@ __SLIDES__
   const outlineFullToggleEl = document.getElementById('mdslides-outline-full-toggle');
   let fullFocusIndex = 0;
 
+  // Builds an ASCII tree-connector prefix ("|   ", "+-- ", "`-- ") for each
+  // row, the same way a file-tree view draws ancestry: for every ancestor
+  // depth shallower than this row's own level, a "|" continues only if
+  // that ancestor still has a later child somewhere below; the row's own
+  // depth gets an elbow ("+--" if it has following siblings, "`--" if
+  // it's the last one). Root-level headings (level <= 1) get no prefix.
+  function computeTreeGuides(items) {
+    // Is there a later item at exactly `depth`, before the branch closes
+    // (a later item shallower than `depth` ends it first)?
+    function continuesAt(fromIndex, depth) {
+      for (let j = fromIndex + 1; j < items.length; j++) {
+        if (items[j].level < depth) return false;
+        if (items[j].level === depth) return true;
+      }
+      return false;
+    }
+
+    return items.map((item, i) => {
+      if (item.level <= 1) return '';
+      let prefix = '';
+      for (let d = 2; d < item.level; d++) {
+        prefix += continuesAt(i, d) ? '│   ' : '    ';
+      }
+      prefix += continuesAt(i, item.level) ? '├── ' : '└── ';
+      return prefix;
+    });
+  }
+
   function renderOutlineFull() {
+    const guides = computeTreeGuides(outline);
     outlineFullEl.innerHTML = outline
-      .map((item) => {
-        const indent = 1 + Math.max(0, item.level - 1) * 4;
-        return `<a href="#" data-index="${item.index}" style="padding-left:${indent}ch">${escapeHtml(item.text)}</a>`;
+      .map((item, i) => {
+        const prefix = guides[i] ? `<span class="tree-guides">${guides[i]}</span>` : '';
+        return `<a href="#" data-index="${item.index}" data-level="${item.level}">${prefix}<span class="tree-label">${escapeHtml(item.text)}</span></a>`;
       })
       .join('');
     updateOutlineFullCurrent();
