@@ -662,7 +662,25 @@ __SLIDES__
   const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'OS']);
   let pendingFoldPrefix = false;
   document.addEventListener('keydown', (ev) => {
-    if (!isOutlineFullVisible()) return;
+    if (!isOutlineFullVisible()) {
+      // Escape's default action in plain slide mode (Reveal's slide
+      // overview, shared with "O") is unreliable -- Escape is a
+      // browser/OS/extension-reserved key that can get intercepted before
+      // the page even sees it, unlike a plain letter. Swallow it here
+      // (our own listener, not a Reveal keybinding) so it's simply
+      // disabled rather than flaky; "O" still works as before.
+      // But: Reveal only lets Escape (plus a couple of others) through
+      // while one of *its own* overlays is open (help, image/video
+      // preview) -- that's the only way to close them, since it rejects a
+      // second "?" press outright while an overlay is open. So Escape
+      // must still reach Reveal whenever one of those is up, or the
+      // overlay gets stuck open with no way to close it.
+      if (ev.key === 'Escape' && !deck.isOverlayOpen()) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+      return;
+    }
     if (MODIFIER_KEYS.has(ev.key)) {
       ev.preventDefault();
       ev.stopPropagation();
