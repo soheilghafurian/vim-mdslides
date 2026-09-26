@@ -72,6 +72,36 @@
     font: 16px monospace; line-height: 1; padding: 5px 8px;
     cursor: pointer;
   }
+  /* Full-page outline: same heading list as the side drawer, but replacing
+     the entire slide area instead of overlaying a strip of it -- a bigger,
+     easier-to-scan view for jumping around a long deck. `hidden` (toggled
+     in JS) relies on the UA stylesheet's `[hidden]{display:none}`, so this
+     rule deliberately never sets `display` itself. */
+  #mdslides-outline-full {
+    position: fixed; inset: 0; z-index: 970;
+    background: rgba(0, 0, 0, 0.97); color: #eee;
+    overflow-y: auto; box-sizing: border-box;
+    padding: 64px max(24px, 8vw) 24px;
+    font: 22px/1.7 sans-serif;
+  }
+  #mdslides-outline-full a {
+    display: block; color: #ccc; text-decoration: none;
+    padding: 6px 14px; border-radius: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #mdslides-outline-full a.focused {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  #mdslides-outline-full a.current {
+    color: #fff; font-weight: bold;
+  }
+  #mdslides-outline-full-toggle {
+    position: fixed; top: 8px; left: 50px; z-index: 960;
+    background: rgba(10, 10, 10, 0.6); color: #ccc;
+    border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 3px;
+    font: 16px monospace; line-height: 1; padding: 5px 8px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -81,7 +111,9 @@ __SLIDES__
   </div>
 </div>
 <button id="mdslides-outline-toggle" title="Toggle outline (0)">&#9776;</button>
+<button id="mdslides-outline-full-toggle" title="Toggle full-page outline (9)">&#8862;</button>
 <nav id="mdslides-outline"></nav>
+<nav id="mdslides-outline-full" hidden></nav>
 <div id="mdslides-status">mdslides: connecting&hellip;</div>
 
 <script src="/vendor/reveal.js"></script>
@@ -210,20 +242,111 @@ __SLIDES__
 
   function setOutlineVisible(visible) {
     outlineEl.classList.toggle('visible', visible);
+    // Mutually exclusive with the full-page outline -- only one overlay at
+    // a time. setOutlineFullVisible(false) only touches the full outline
+    // (it doesn't call back into here), so this can't recurse.
+    if (visible) setOutlineFullVisible(false);
   }
 
   outlineToggleEl.addEventListener('click', () => {
     setOutlineVisible(!outlineEl.classList.contains('visible'));
   });
 
+  // Full-page outline: the same heading list as the side drawer, but as a
+  // full-viewport view replacing the slide entirely -- easier to scan on a
+  // long deck. It's a self-contained little modal: arrow keys/j/k move a
+  // "focused" row, Enter jumps to it, Escape/9/click-outside-a-link close
+  // it. While open, a capturing keydown listener swallows every key before
+  // Reveal's own (bubbling) keyboard handler sees it, so things like arrow
+  // navigation or "o" (overview) don't also act on the hidden slide
+  // underneath.
+  const outlineFullEl = document.getElementById('mdslides-outline-full');
+  const outlineFullToggleEl = document.getElementById('mdslides-outline-full-toggle');
+  let fullFocusIndex = 0;
+
+  function renderOutlineFull() {
+    outlineFullEl.innerHTML = outline
+      .map((item) => {
+        const indent = 8 + Math.max(0, item.level - 1) * 24;
+        return `<a href="#" data-index="${item.index}" style="padding-left:${indent}px">${escapeHtml(item.text)}</a>`;
+      })
+      .join('');
+    updateOutlineFullCurrent();
+  }
+
+  function updateOutlineFullCurrent() {
+    const current = deck.getIndices().h;
+    const items = outlineFullEl.querySelectorAll('a');
+    items.forEach((a, i) => {
+      const isCurrent = Number(a.dataset.index) === current;
+      a.classList.toggle('current', isCurrent);
+      if (isCurrent) fullFocusIndex = i;
+    });
+    items.forEach((a, i) => a.classList.toggle('focused', i === fullFocusIndex));
+  }
+
+  function moveFullFocus(delta) {
+    const items = outlineFullEl.querySelectorAll('a');
+    if (!items.length) return;
+    fullFocusIndex = (fullFocusIndex + delta + items.length) % items.length;
+    items.forEach((a, i) => a.classList.toggle('focused', i === fullFocusIndex));
+    items[fullFocusIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  function isOutlineFullVisible() {
+    return !outlineFullEl.hidden;
+  }
+
+  function setOutlineFullVisible(visible) {
+    outlineFullEl.hidden = !visible;
+    if (visible) {
+      setOutlineVisible(false);
+      updateOutlineFullCurrent();
+    }
+  }
+
+  outlineFullEl.addEventListener('click', (ev) => {
+    const a = ev.target.closest('a');
+    if (!a) return;
+    ev.preventDefault();
+    deck.slide(Number(a.dataset.index), 0);
+    setOutlineFullVisible(false);
+  });
+
+  outlineFullToggleEl.addEventListener('click', () => {
+    setOutlineFullVisible(!isOutlineFullVisible());
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (!isOutlineFullVisible()) return;
+    if (ev.key === 'Escape' || ev.key === '9') {
+      setOutlineFullVisible(false);
+    } else if (ev.key === 'ArrowDown' || ev.key === 'j') {
+      moveFullFocus(1);
+    } else if (ev.key === 'ArrowUp' || ev.key === 'k') {
+      moveFullFocus(-1);
+    } else if (ev.key === 'Enter') {
+      const focused = outlineFullEl.querySelectorAll('a')[fullFocusIndex];
+      if (focused) deck.slide(Number(focused.dataset.index), 0);
+      setOutlineFullVisible(false);
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+  }, true);
+
   deck.initialize().then(() => {
     fitCurrentSlide();
     watchImages(deck.getCurrentSlide());
     mermaid.run({ querySelector: '.mermaid' }).then(fitCurrentSlide);
     renderOutline();
+    renderOutlineFull();
     deck.addKeyBinding(
       { keyCode: 48, key: '0', description: 'Toggle slide outline' },
       () => setOutlineVisible(!outlineEl.classList.contains('visible'))
+    );
+    deck.addKeyBinding(
+      { keyCode: 57, key: '9', description: 'Toggle full-page outline' },
+      () => setOutlineFullVisible(!isOutlineFullVisible())
     );
   });
 
@@ -231,6 +354,7 @@ __SLIDES__
     fitSlide(event.currentSlide);
     watchImages(event.currentSlide);
     updateOutlineCurrent();
+    updateOutlineFullCurrent();
   });
 
   window.addEventListener('resize', fitCurrentSlide);
@@ -263,6 +387,7 @@ __SLIDES__
     watchImages(deck.getCurrentSlide());
     outline = newOutline;
     renderOutline();
+    renderOutlineFull();
     statusEl.textContent = 'mdslides: live (updated)';
     setTimeout(() => { statusEl.textContent = 'mdslides: live'; }, 1000);
   });
