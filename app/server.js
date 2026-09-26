@@ -3,23 +3,30 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { renderSlidesHtml, slideIndexForLine, buildOutline } = require('./render');
+const { renderSlidesHtml, renderDocumentHtml, slideIndexForLine, buildOutline } = require('./render');
 
-const [, , sourcePath, portArg, assetsDirArg] = process.argv;
+const [, , sourcePath, portArg, assetsDirArg, modeArg] = process.argv;
 // 0 (the default) tells Node to bind an OS-assigned free port, so each
 // mdslides instance (one per Vim buffer presenting at once) gets its own
 // server without colliding on a shared fixed port.
 const parsedPort = Number(portArg);
 const port = Number.isNaN(parsedPort) ? 0 : parsedPort;
 const assetsDir = assetsDirArg || path.dirname(sourcePath);
+const mode = modeArg === 'document' ? 'document' : 'slides';
+const renderHtml = mode === 'document' ? renderDocumentHtml : renderSlidesHtml;
 
 if (!sourcePath) {
-  console.error('usage: node server.js <source-file> <port> [assets-dir]');
+  console.error('usage: node server.js <source-file> <port> [assets-dir] [mode]');
   process.exit(1);
 }
 
-const pageTemplate = fs.readFileSync(path.join(__dirname, 'page.html'), 'utf8');
+const pageTemplate = fs.readFileSync(
+  path.join(__dirname, mode === 'document' ? 'document.html' : 'page.html'),
+  'utf8'
+);
 const vendorDir = path.join(__dirname, 'vendor');
+const outlineJs = fs.readFileSync(path.join(__dirname, 'outline.js'), 'utf8');
+const outlineCss = fs.readFileSync(path.join(__dirname, 'outline.css'), 'utf8');
 
 const mimeTypes = {
   '.js': 'application/javascript',
@@ -44,7 +51,7 @@ function broadcastUpdate() {
   let outline;
   try {
     const source = fs.readFileSync(sourcePath, 'utf8');
-    html = renderSlidesHtml(source);
+    html = renderHtml(source);
     outline = buildOutline(source);
   } catch (err) {
     console.error('mdslides: failed to render slides:', err.message);
@@ -71,7 +78,7 @@ const server = http.createServer((req, res) => {
     let outline;
     try {
       source = fs.readFileSync(sourcePath, 'utf8');
-      html = renderSlidesHtml(source);
+      html = renderHtml(source);
       outline = buildOutline(source);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -126,6 +133,20 @@ const server = http.createServer((req, res) => {
     res.write('\n');
     sseClients.add(res);
     req.on('close', () => sseClients.delete(res));
+    return;
+  }
+
+  // Shared outline/fold UI, used by both templates -- see the comment at
+  // the top of outline.js for why it's served as a static file rather than
+  // templated (it carries no per-request state).
+  if (req.url === '/outline.js') {
+    res.writeHead(200, { 'Content-Type': 'application/javascript' });
+    res.end(outlineJs);
+    return;
+  }
+  if (req.url === '/outline.css') {
+    res.writeHead(200, { 'Content-Type': 'text/css' });
+    res.end(outlineCss);
     return;
   }
 

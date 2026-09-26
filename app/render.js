@@ -154,4 +154,32 @@ function renderSlidesHtml(markdownSource) {
   return unstashMath(html);
 }
 
-module.exports = { renderSlidesHtml, slideIndexForLine, buildOutline };
+// Continuous, non-slide rendering for document mode: the whole document as
+// one flowing HTML page instead of split into <section>s. Reuses
+// splitIntoSlides purely as a grouping utility -- the same grouping
+// buildOutline() uses -- so each group's heading gets an id matching
+// buildOutline()'s `index` exactly (id="mdslides-heading-N"), letting the
+// outline panel jump to it by scrolling instead of by deck.slide().
+function renderDocumentHtml(markdownSource) {
+  if (!markdownSource.trim()) {
+    return '<p><em>Empty document</em></p>';
+  }
+  const stashed = stashMath(markdownSource);
+  const tokens = md.parse(stashed, {});
+  const groups = splitIntoSlides(tokens);
+
+  const html = groups
+    .map((groupTokens, index) => {
+      const headingOpenIdx = groupTokens.findIndex((tok) => tok.type === 'heading_open');
+      if (headingOpenIdx === -1) {
+        return `<div id="mdslides-heading-${index}">${md.renderer.render(groupTokens, md.options, {})}</div>`;
+      }
+      groupTokens[headingOpenIdx].attrSet('id', `mdslides-heading-${index}`);
+      return md.renderer.render(groupTokens, md.options, {});
+    })
+    .join('\n');
+
+  return unstashMath(html);
+}
+
+module.exports = { renderSlidesHtml, renderDocumentHtml, slideIndexForLine, buildOutline };

@@ -17,3 +17,10 @@ z SPECS
 - [x] Hierarchical tree of the slides on the side. It should be able to hidden or shown during the presentation.
 - [x] There is a feature similar to the side-outline, but the outline should replace the whole slide when shown.
 - [x] When the user presses '?' in the presentation, they should see a list of the key bindings that they can use during thepresentation.
+- [x] `:MDDocumentStart` renders the current markdown buffer as a continuous, normally-scrolling HTML document (not slide-split)
+- [x] `:MDDocumentStop` stops the document-mode server
+- [x] `:MDDocumentToggle` toggles between start and stop for document mode, switching modes if the other one is running
+- [x] Document mode shares the outline side-drawer and full-page outline (with folding) with slide mode
+- [x] Document mode live-updates in the browser on buffer edit/save, no manual refresh
+- [x] Document mode supports LaTeX math, Mermaid diagrams, and relative image paths, same as slide mode
+- [x] Document mode has its own GitHub-flavored light styling (not inherited from slide mode's dark theme)
