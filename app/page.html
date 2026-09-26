@@ -130,6 +130,41 @@
     font: 16px monospace; line-height: 1; padding: 5px 8px;
     cursor: pointer;
   }
+  /* Full-page outline's own "?" help overlay -- separate from reveal's
+     global one, since the capturing keydown listener below swallows "?"
+     (and everything else) while the full outline is open, so reveal's
+     help never sees it in the first place. */
+  #mdslides-outline-full-help {
+    position: fixed; inset: 0; z-index: 980;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    font: 16px/1.5 sans-serif;
+  }
+  /* `display: flex` above only applies once actually shown -- must be set
+     here rather than unconditionally, or it'd beat the UA stylesheet's
+     `[hidden]{display:none}` (an ID selector always outranks that
+     attribute selector) and the panel would never actually hide. */
+  #mdslides-outline-full-help:not([hidden]) {
+    display: flex;
+  }
+  #mdslides-outline-full-help .box {
+    background: #1a1a1a; color: #eee;
+    border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px;
+    padding: 20px 28px;
+  }
+  #mdslides-outline-full-help .title {
+    margin: 0 0 12px; font-weight: 700;
+  }
+  #mdslides-outline-full-help table {
+    border-collapse: collapse;
+  }
+  #mdslides-outline-full-help td {
+    padding: 3px 10px; white-space: nowrap;
+  }
+  #mdslides-outline-full-help td:first-child {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #9cdcfe; text-align: right;
+  }
 </style>
 </head>
 <body>
@@ -142,6 +177,26 @@ __SLIDES__
 <button id="mdslides-outline-full-toggle" title="Toggle full-page outline (9)">&#8862;</button>
 <nav id="mdslides-outline"></nav>
 <nav id="mdslides-outline-full" hidden></nav>
+<div id="mdslides-outline-full-help" hidden>
+  <div class="box">
+    <p class="title">Full-page outline shortcuts</p>
+    <table>
+      <tr><td>j, &#8595;</td><td>Move down</td></tr>
+      <tr><td>k, &#8593;</td><td>Move up</td></tr>
+      <tr><td>Enter</td><td>Jump to slide</td></tr>
+      <tr><td>zo / zc / za</td><td>Open / close / toggle fold</td></tr>
+      <tr><td>zO / zC / zA</td><td>Open / close / toggle fold, recursively</td></tr>
+      <tr><td>zj / zk</td><td>Jump to next / previous foldable node</td></tr>
+      <tr><td>zr / zm</td><td>Open / close one more level everywhere</td></tr>
+      <tr><td>zR / zM</td><td>Open / close all folds</td></tr>
+      <tr><td>zi</td><td>Toggle folding on/off</td></tr>
+      <tr><td>zn / zN</td><td>Folding off / on</td></tr>
+      <tr><td>zv / zx / zX</td><td>Reveal the current slide</td></tr>
+      <tr><td>?</td><td>Toggle this help</td></tr>
+      <tr><td>Esc, 9</td><td>Close outline</td></tr>
+    </table>
+  </div>
+</div>
 <div id="mdslides-status">mdslides: connecting&hellip;</div>
 
 <script src="/vendor/reveal.js"></script>
@@ -290,7 +345,24 @@ __SLIDES__
   // underneath.
   const outlineFullEl = document.getElementById('mdslides-outline-full');
   const outlineFullToggleEl = document.getElementById('mdslides-outline-full-toggle');
+  const outlineHelpEl = document.getElementById('mdslides-outline-full-help');
   let fullFocusIndex = 0;
+  // Slide indices (item.index) of currently-folded nodes, vim-fold style:
+  // a folded node's own row stays visible, only its descendants hide.
+  const folded = new Set();
+  // "foldenable" (zi/zn/zN): when off, every row shows regardless of
+  // `folded`, without discarding it -- turning it back on restores exactly
+  // what was folded before.
+  let foldingEnabled = true;
+  // Coarse global depth used only by zm/zr/zM/zR: level > foldLevel means
+  // "closed". Manual per-node commands (zo/zc/za/zO/zC/zA) mutate `folded`
+  // directly and don't keep this in sync, so it's just a baseline for the
+  // *next* zm/zr nudge, not a live reflection of the current fold state.
+  let foldLevel = Infinity;
+  // outline, annotated with whether each item has children -- rebuilt by
+  // renderOutlineFull() each render, read by the fold commands to know
+  // whether a node is foldable at all.
+  let annotated = [];
 
   // Builds an ASCII tree-connector prefix ("|   ", "+-- ", "`-- ") for each
   // row, the same way a file-tree view draws ancestry: for every ancestor
@@ -320,26 +392,81 @@ __SLIDES__
     });
   }
 
-  function renderOutlineFull() {
-    const guides = computeTreeGuides(outline);
-    outlineFullEl.innerHTML = outline
-      .map((item, i) => {
-        const prefix = guides[i] ? `<span class="tree-guides">${guides[i]}</span>` : '';
-        return `<a href="#" data-index="${item.index}" data-level="${item.level}">${prefix}<span class="tree-label">${escapeHtml(item.text)}</span></a>`;
-      })
-      .join('');
-    updateOutlineFullCurrent();
+  // Tags each outline item with whether it has children (the next item is
+  // deeper than it), independent of fold state -- fold commands need this
+  // to know whether a node is foldable at all, and rendering needs it to
+  // show a marker even for currently-empty-looking folded nodes.
+  function annotateHasChildren(items) {
+    return items.map((item, i) => ({
+      ...item,
+      hasChildren: i + 1 < items.length && items[i + 1].level > item.level,
+    }));
   }
 
-  function updateOutlineFullCurrent() {
-    const current = deck.getIndices().h;
+  // Filters `items` (already annotated) down to the rows a vim-style fold
+  // would leave visible: once a folded node is hit, everything deeper than
+  // it is skipped until a row at its own level (or shallower) closes that
+  // branch back out.
+  function computeVisibleOutline(items) {
+    if (!foldingEnabled) return items.slice();
+    const visible = [];
+    let hideBelowLevel = null;
+    for (const item of items) {
+      if (hideBelowLevel !== null && item.level > hideBelowLevel) continue;
+      hideBelowLevel = null;
+      visible.push(item);
+      if (item.hasChildren && folded.has(item.index)) {
+        hideBelowLevel = item.level;
+      }
+    }
+    return visible;
+  }
+
+  // Rebuilds the full-outline's rows from `outline` + the current `folded`
+  // set. Doesn't touch which row is focused -- callers that want focus
+  // moved (opening the panel, following the deck's current slide, undoing
+  // a fold) do that explicitly via focusRowForSlideIndex() afterwards.
+  function renderOutlineFull() {
+    annotated = annotateHasChildren(outline);
+    const visible = computeVisibleOutline(annotated);
+    const guides = computeTreeGuides(visible);
+    outlineFullEl.innerHTML = visible
+      .map((item, i) => {
+        const marker = item.hasChildren ? (folded.has(item.index) ? '▸ ' : '▾ ') : '  ';
+        const guide = `<span class="tree-guides">${marker}${guides[i]}</span>`;
+        const foldable = item.hasChildren ? ' data-foldable="1"' : '';
+        return `<a href="#" data-index="${item.index}" data-level="${item.level}"${foldable}>${guide}<span class="tree-label">${escapeHtml(item.text)}</span></a>`;
+      })
+      .join('');
+    applyFullOutlineRowClasses();
+  }
+
+  // Re-applies "current" (the slide the deck is actually on) and "focused"
+  // (keyboard-navigation position) classes to whatever's currently
+  // rendered, without rebuilding or moving focus.
+  function applyFullOutlineRowClasses() {
     const items = outlineFullEl.querySelectorAll('a');
+    if (fullFocusIndex >= items.length) fullFocusIndex = Math.max(0, items.length - 1);
+    const current = deck.getIndices().h;
     items.forEach((a, i) => {
-      const isCurrent = Number(a.dataset.index) === current;
-      a.classList.toggle('current', isCurrent);
-      if (isCurrent) fullFocusIndex = i;
+      a.classList.toggle('current', Number(a.dataset.index) === current);
+      a.classList.toggle('focused', i === fullFocusIndex);
     });
-    items.forEach((a, i) => a.classList.toggle('focused', i === fullFocusIndex));
+  }
+
+  // Moves keyboard focus to whichever visible row shows the given slide
+  // index (a no-op, safely, if that slide isn't currently visible -- e.g.
+  // its ancestor is folded).
+  function focusRowForSlideIndex(slideIndex) {
+    const items = Array.from(outlineFullEl.querySelectorAll('a'));
+    const idx = items.findIndex((a) => Number(a.dataset.index) === slideIndex);
+    if (idx !== -1) fullFocusIndex = idx;
+    applyFullOutlineRowClasses();
+  }
+
+  function getFocusedSlideIndex() {
+    const a = outlineFullEl.querySelectorAll('a')[fullFocusIndex];
+    return a ? Number(a.dataset.index) : null;
   }
 
   function moveFullFocus(delta) {
@@ -350,15 +477,160 @@ __SLIDES__
     items[fullFocusIndex].scrollIntoView({ block: 'nearest' });
   }
 
+  // zj/zk: like moveFullFocus, but skips to the next/previous *foldable*
+  // row instead of the next/previous visible row -- for jumping between
+  // branches in a long deck instead of stepping through every heading.
+  function moveFullFocusToFoldable(delta) {
+    const items = Array.from(outlineFullEl.querySelectorAll('a'));
+    const foldableIndices = items.reduce((acc, a, i) => {
+      if (a.dataset.foldable === '1') acc.push(i);
+      return acc;
+    }, []);
+    if (!foldableIndices.length) return;
+    const ahead = delta > 0
+      ? foldableIndices.filter((i) => i > fullFocusIndex)
+      : foldableIndices.filter((i) => i < fullFocusIndex).reverse();
+    fullFocusIndex = ahead.length
+      ? ahead[0]
+      : (delta > 0 ? foldableIndices[0] : foldableIndices[foldableIndices.length - 1]);
+    items.forEach((a, i) => a.classList.toggle('focused', i === fullFocusIndex));
+    items[fullFocusIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  // All descendants of `item` (every later item in `annotated` deeper than
+  // it, stopping at the first one back down to its own level or shallower)
+  // -- used by the recursive fold commands (zO/zC/zA).
+  function descendantsOf(item) {
+    const i = annotated.findIndex((it) => it.index === item.index);
+    const result = [];
+    for (let j = i + 1; j < annotated.length; j++) {
+      if (annotated[j].level <= item.level) break;
+      result.push(annotated[j]);
+    }
+    return result;
+  }
+
+  // Vim-style folding, scoped to the focused row. A plain fold only hides
+  // a node's descendants -- the node's own row stays put, so refocusing it
+  // by slide index after a re-render always succeeds.
+  function setFold(slideIndex, shouldFold) {
+    if (slideIndex === null) return;
+    const item = annotated.find((it) => it.index === slideIndex);
+    if (!item || !item.hasChildren) return;
+    if (shouldFold) folded.add(slideIndex); else folded.delete(slideIndex);
+    renderOutlineFull();
+    focusRowForSlideIndex(slideIndex);
+  }
+
+  // zO/zC/zA: same as zo/zc/za, but also forces every descendant fold (not
+  // just the immediate node) to the same open/closed state.
+  function setFoldRecursive(slideIndex, shouldFold) {
+    if (slideIndex === null) return;
+    const item = annotated.find((it) => it.index === slideIndex);
+    if (!item || !item.hasChildren) return;
+    const targets = [item, ...descendantsOf(item).filter((d) => d.hasChildren)];
+    targets.forEach((t) => {
+      if (shouldFold) folded.add(t.index); else folded.delete(t.index);
+    });
+    renderOutlineFull();
+    focusRowForSlideIndex(slideIndex);
+  }
+
+  function foldAll() {
+    const slideIndex = getFocusedSlideIndex();
+    annotated.forEach((item) => {
+      if (item.hasChildren) folded.add(item.index);
+    });
+    renderOutlineFull();
+    if (slideIndex !== null) focusRowForSlideIndex(slideIndex);
+  }
+
+  function unfoldAll() {
+    const slideIndex = getFocusedSlideIndex();
+    folded.clear();
+    renderOutlineFull();
+    if (slideIndex !== null) focusRowForSlideIndex(slideIndex);
+  }
+
+  // The deepest heading level that actually owns a fold (has children) --
+  // used as the "fully open" baseline for zm/zr's first step. Using the
+  // deepest heading level overall would be wrong: the deepest heading
+  // never has children (nothing is deeper than it), so it never defines a
+  // fold at all -- stepping toward *that* would be a no-op every time.
+  function maxFoldableLevel() {
+    return annotated.reduce((max, item) => (item.hasChildren ? Math.max(max, item.level) : max), 0);
+  }
+
+  // zm/zr/zM/zR: a coarse global "depth" -- every foldable node deeper
+  // than `level` gets closed, everything at or above it opens. This
+  // replaces whatever `folded` held before, same as vim discarding manual
+  // fold state when 'foldlevel' changes.
+  function applyFoldLevel(level) {
+    const slideIndex = getFocusedSlideIndex();
+    foldLevel = level;
+    folded.clear();
+    annotated.forEach((item) => {
+      if (item.hasChildren && item.level > level) folded.add(item.index);
+    });
+    renderOutlineFull();
+    if (slideIndex !== null) focusRowForSlideIndex(slideIndex);
+  }
+
+  // zv/zx/zX: our tree is always derived fresh from the current headings
+  // (nothing to recompute the way vim's foldmethod would), so all three
+  // reduce to the same useful thing here -- unfold whatever's hiding the
+  // slide the deck is actually on, without touching any other fold.
+  function revealCurrentSlide() {
+    const currentSlideIndex = deck.getIndices().h;
+    const i = annotated.findIndex((it) => it.index === currentSlideIndex);
+    if (i === -1) return;
+    let level = annotated[i].level;
+    for (let j = i - 1; j >= 0 && level > 1; j--) {
+      if (annotated[j].level < level) {
+        folded.delete(annotated[j].index);
+        level = annotated[j].level;
+      }
+    }
+    renderOutlineFull();
+    focusRowForSlideIndex(currentSlideIndex);
+  }
+
+  function applyFoldCommand(cmd) {
+    const slideIndex = getFocusedSlideIndex();
+    const isFolded = slideIndex !== null && folded.has(slideIndex);
+    if (cmd === 'zo') setFold(slideIndex, false);
+    else if (cmd === 'zc') setFold(slideIndex, true);
+    else if (cmd === 'za') setFold(slideIndex, !isFolded);
+    else if (cmd === 'zO') setFoldRecursive(slideIndex, false);
+    else if (cmd === 'zC') setFoldRecursive(slideIndex, true);
+    else if (cmd === 'zA') setFoldRecursive(slideIndex, !isFolded);
+    else if (cmd === 'zR') applyFoldLevel(Infinity);
+    else if (cmd === 'zM') applyFoldLevel(0);
+    else if (cmd === 'zr') applyFoldLevel(Math.min(maxFoldableLevel(), (foldLevel === Infinity ? maxFoldableLevel() : foldLevel) + 1));
+    else if (cmd === 'zm') applyFoldLevel(Math.max(0, (foldLevel === Infinity ? maxFoldableLevel() : foldLevel) - 1));
+    else if (cmd === 'zi') { foldingEnabled = !foldingEnabled; renderOutlineFull(); }
+    else if (cmd === 'zn') { foldingEnabled = false; renderOutlineFull(); }
+    else if (cmd === 'zN') { foldingEnabled = true; renderOutlineFull(); }
+    else if (cmd === 'zv' || cmd === 'zx' || cmd === 'zX') revealCurrentSlide();
+    else if (cmd === 'zj') moveFullFocusToFoldable(1);
+    else if (cmd === 'zk') moveFullFocusToFoldable(-1);
+  }
+
   function isOutlineFullVisible() {
     return !outlineFullEl.hidden;
+  }
+
+  function setOutlineHelpVisible(visible) {
+    outlineHelpEl.hidden = !visible;
   }
 
   function setOutlineFullVisible(visible) {
     outlineFullEl.hidden = !visible;
     if (visible) {
       setOutlineVisible(false);
-      updateOutlineFullCurrent();
+      focusRowForSlideIndex(deck.getIndices().h);
+    } else {
+      setOutlineHelpVisible(false);
     }
   }
 
@@ -374,9 +646,39 @@ __SLIDES__
     setOutlineFullVisible(!isOutlineFullVisible());
   });
 
+  // Pressing "z" arms a two-key fold command (zo/zc/za/zR/zM, mirroring
+  // vim); whatever key follows completes or cancels it. Otherwise, this
+  // (registered on the capture phase) is what makes the full outline its
+  // own little modal: while it's open, every key is handled here and
+  // never reaches Reveal's own (bubbling) keyboard handler underneath --
+  // that's also why "?" opens *this* panel's shortcut list instead of
+  // Reveal's global one.
+  // Bare modifier keys (held to type a capital letter for zO/zC/zA/zR/zM/
+  // zN/zX) fire their own keydown *before* the letter's -- e.g. pressing
+  // Shift+O fires one keydown for "Shift" and then a separate one for "O".
+  // Without this guard, the "Shift" keydown itself would get consumed as
+  // the second half of a "z" command, leaving nothing to catch the actual
+  // letter that follows.
+  const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'OS']);
+  let pendingFoldPrefix = false;
   document.addEventListener('keydown', (ev) => {
     if (!isOutlineFullVisible()) return;
-    if (ev.key === 'Escape' || ev.key === '9') {
+    if (MODIFIER_KEYS.has(ev.key)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
+
+    if (pendingFoldPrefix) {
+      pendingFoldPrefix = false;
+      applyFoldCommand('z' + ev.key);
+    } else if (!outlineHelpEl.hidden) {
+      if (ev.key === 'Escape' || ev.key === '?') setOutlineHelpVisible(false);
+    } else if (ev.key === 'z') {
+      pendingFoldPrefix = true;
+    } else if (ev.key === '?') {
+      setOutlineHelpVisible(true);
+    } else if (ev.key === 'Escape' || ev.key === '9') {
       setOutlineFullVisible(false);
     } else if (ev.key === 'ArrowDown' || ev.key === 'j') {
       moveFullFocus(1);
@@ -411,7 +713,7 @@ __SLIDES__
     fitSlide(event.currentSlide);
     watchImages(event.currentSlide);
     updateOutlineCurrent();
-    updateOutlineFullCurrent();
+    focusRowForSlideIndex(deck.getIndices().h);
   });
 
   window.addEventListener('resize', fitCurrentSlide);
