@@ -102,6 +102,38 @@ function slideIndexForLine(markdownSource, line) {
   return index;
 }
 
+// Plain-text content of a heading's inline token, stripping markup (bold,
+// code spans, etc.) rather than rendering it -- this feeds the outline
+// panel's link labels, not the slide HTML itself.
+function extractHeadingText(inlineToken) {
+  if (!inlineToken || !inlineToken.children) return '';
+  return inlineToken.children
+    .filter((tok) => tok.type === 'text' || tok.type === 'code_inline')
+    .map((tok) => tok.content)
+    .join('');
+}
+
+// Flat, level-tagged list of headings (one entry per slide) driving the
+// outline/tree side panel: { level, text, index }. `level` is the heading
+// level (1-6), or 0 for the leading preamble slide before the first
+// heading, if any. `index` is the slide's position in the linear deck, so
+// the panel can jump straight to `deck.slide(index, 0)`.
+function buildOutline(markdownSource) {
+  const stashed = stashMath(markdownSource);
+  const tokens = md.parse(stashed, {});
+  const slides = splitIntoSlides(tokens);
+
+  return slides.map((slideTokens, index) => {
+    const headingOpenIdx = slideTokens.findIndex((tok) => tok.type === 'heading_open');
+    if (headingOpenIdx === -1) {
+      return { level: 0, text: 'Intro', index };
+    }
+    const level = Number(slideTokens[headingOpenIdx].tag.slice(1));
+    const text = extractHeadingText(slideTokens[headingOpenIdx + 1]) || '(untitled)';
+    return { level, text, index };
+  });
+}
+
 function renderSlidesHtml(markdownSource) {
   const stashed = stashMath(markdownSource);
   const tokens = md.parse(stashed, {});
@@ -122,4 +154,4 @@ function renderSlidesHtml(markdownSource) {
   return unstashMath(html);
 }
 
-module.exports = { renderSlidesHtml, slideIndexForLine };
+module.exports = { renderSlidesHtml, slideIndexForLine, buildOutline };

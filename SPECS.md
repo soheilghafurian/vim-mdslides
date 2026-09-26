@@ -14,4 +14,5 @@ z SPECS
 - [x] Optional cursor-follow mode (`g:mdslides_follow_cursor`): moving the cursor jumps the browser to that slide
 - [ ] Code block syntax highlighting
 - [ ] Slide numbering / progress indicator
-- [ ] Hierarchical tree of the slides on the side. It should be able to hidden or shown during the presentation.
+- [x] Hierarchical tree of the slides on the side. It should be able to hidden or shown during the presentation.
+- [ ] When the user presses '?' in the presentation, they should see a list of the key bindings that they can use during thepresentation.

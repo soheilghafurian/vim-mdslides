@@ -3,7 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { renderSlidesHtml, slideIndexForLine } = require('./render');
+const { renderSlidesHtml, slideIndexForLine, buildOutline } = require('./render');
 
 const [, , sourcePath, portArg, assetsDirArg] = process.argv;
 // 0 (the default) tells Node to bind an OS-assigned free port, so each
@@ -39,20 +39,18 @@ const mimeTypes = {
 /** @type {Set<http.ServerResponse>} */
 const sseClients = new Set();
 
-function currentSlidesHtml() {
-  const source = fs.readFileSync(sourcePath, 'utf8');
-  return renderSlidesHtml(source);
-}
-
 function broadcastUpdate() {
   let html;
+  let outline;
   try {
-    html = currentSlidesHtml();
+    const source = fs.readFileSync(sourcePath, 'utf8');
+    html = renderSlidesHtml(source);
+    outline = buildOutline(source);
   } catch (err) {
     console.error('mdslides: failed to render slides:', err.message);
     return;
   }
-  const payload = `event: update\ndata: ${JSON.stringify({ html })}\n\n`;
+  const payload = `event: update\ndata: ${JSON.stringify({ html, outline })}\n\n`;
   for (const res of sseClients) {
     res.write(payload);
   }
@@ -70,9 +68,11 @@ const server = http.createServer((req, res) => {
   if (req.url === '/' || req.url.startsWith('/?')) {
     let source;
     let html;
+    let outline;
     try {
       source = fs.readFileSync(sourcePath, 'utf8');
       html = renderSlidesHtml(source);
+      outline = buildOutline(source);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end(`mdslides: failed to render source: ${err.message}`);
@@ -82,9 +82,14 @@ const server = http.createServer((req, res) => {
     // which slide to land on initially instead of always the first one.
     const lineParam = new URL(req.url, 'http://localhost').searchParams.get('line');
     const initialIndex = lineParam ? slideIndexForLine(source, Number(lineParam)) : 0;
+    // JSON can legally contain "</script>", which would prematurely close
+    // the inline <script> tag it's embedded in below -- escape "<" so the
+    // browser's HTML parser can't misread it as a tag.
+    const outlineJson = JSON.stringify(outline).replace(/</g, '\\u003c');
     const page = pageTemplate
       .replace('__SLIDES__', html)
-      .replace('__INITIAL_INDEX__', JSON.stringify(initialIndex));
+      .replace('__INITIAL_INDEX__', JSON.stringify(initialIndex))
+      .replace('__OUTLINE__', outlineJson);
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(page);
     return;
