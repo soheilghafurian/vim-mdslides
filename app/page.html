@@ -668,6 +668,18 @@ __SLIDES__
       ev.stopPropagation();
       return;
     }
+    // OS-level key repeat (holding a key down, even briefly) fires several
+    // keydown events for what feels like one press. For one-shot actions
+    // like closing a panel that's a real problem: the first repeat closes
+    // the help overlay, a second one (now that it's closed) closes the
+    // whole outline too, and a third slips through once we've stopped
+    // intercepting at all -- straight into Reveal's own Escape handler.
+    // Swallow repeats outright rather than acting on them again.
+    if (ev.repeat) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
 
     if (pendingFoldPrefix) {
       pendingFoldPrefix = false;
