@@ -267,8 +267,8 @@ __SLIDES__
   function renderOutlineFull() {
     outlineFullEl.innerHTML = outline
       .map((item) => {
-        const indent = 8 + Math.max(0, item.level - 1) * 24;
-        return `<a href="#" data-index="${item.index}" style="padding-left:${indent}px">${escapeHtml(item.text)}</a>`;
+        const indent = 1 + Math.max(0, item.level - 1) * 4;
+        return `<a href="#" data-index="${item.index}" style="padding-left:${indent}ch">${escapeHtml(item.text)}</a>`;
       })
       .join('');
     updateOutlineFullCurrent();
