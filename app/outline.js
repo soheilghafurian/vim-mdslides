@@ -1,7 +1,7 @@
 'use strict';
 
-// Shared outline/fold UI, used by both slide mode (page.html) and preview
-// mode (preview.html). Everything here is Reveal-agnostic: it talks only
+// Shared outline/fold UI, used by both slide mode (page.html) and document
+// mode (document.html). Everything here is Reveal-agnostic: it talks only
 // to `window.mdslidesDeck`, a small adapter each template assigns before
 // loading this file:
 //
@@ -107,7 +107,7 @@
   // "focused" row, Enter jumps to it, Escape/9/click-outside-a-link close
   // it. While open, a capturing keydown listener swallows every key before
   // Reveal's own (bubbling) keyboard handler sees it (slide mode only --
-  // preview mode has no such handler to worry about), so things like
+  // document mode has no such handler to worry about), so things like
   // arrow navigation or "o" (overview) don't also act on the hidden slide
   // underneath.
   const outlineFullEl = document.getElementById('mdslides-outline-full');

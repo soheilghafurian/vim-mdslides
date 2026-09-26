@@ -3,7 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { renderSlidesHtml, renderPreviewHtml, slideIndexForLine, buildOutline } = require('./render');
+const { renderSlidesHtml, renderDocumentHtml, slideIndexForLine, buildOutline } = require('./render');
 
 const [, , sourcePath, portArg, assetsDirArg, modeArg] = process.argv;
 // 0 (the default) tells Node to bind an OS-assigned free port, so each
@@ -12,8 +12,8 @@ const [, , sourcePath, portArg, assetsDirArg, modeArg] = process.argv;
 const parsedPort = Number(portArg);
 const port = Number.isNaN(parsedPort) ? 0 : parsedPort;
 const assetsDir = assetsDirArg || path.dirname(sourcePath);
-const mode = modeArg === 'preview' ? 'preview' : 'slides';
-const renderHtml = mode === 'preview' ? renderPreviewHtml : renderSlidesHtml;
+const mode = modeArg === 'document' ? 'document' : 'slides';
+const renderHtml = mode === 'document' ? renderDocumentHtml : renderSlidesHtml;
 
 if (!sourcePath) {
   console.error('usage: node server.js <source-file> <port> [assets-dir] [mode]');
@@ -21,7 +21,7 @@ if (!sourcePath) {
 }
 
 const pageTemplate = fs.readFileSync(
-  path.join(__dirname, mode === 'preview' ? 'preview.html' : 'page.html'),
+  path.join(__dirname, mode === 'document' ? 'document.html' : 'page.html'),
   'utf8'
 );
 const vendorDir = path.join(__dirname, 'vendor');

@@ -1,7 +1,7 @@
 " autoload/mdslides.vim
 " Core logic for mdslides: renders the current markdown buffer in the
 " browser, live-updating as you edit, in one of two modes -- 'slides' (a
-" reveal.js deck, one slide per heading) or 'preview' (a continuous,
+" reveal.js deck, one slide per heading) or 'document' (a continuous,
 " normally-scrolling document). Only one session runs at a time; starting
 " either mode stops whatever's currently running first.
 
@@ -39,7 +39,7 @@ let s:browser_opened = 0
 let s:port = 0
 let s:cursor_timer = -1
 let s:initial_line = 1
-" 'slides' (reveal.js deck) or 'preview' (continuous scrolling document) --
+" 'slides' (reveal.js deck) or 'document' (continuous scrolling document) --
 " whichever mode the currently-running session (if any) was started in.
 let s:mode = ''
 
@@ -160,7 +160,7 @@ function! mdslides#stop() abort
 endfunction
 
 function! mdslides#start(...) abort
-  " Optional first arg: 'slides' (default) or 'preview'.
+  " Optional first arg: 'slides' (default) or 'document'.
   let l:mode = a:0 > 0 ? a:1 : 'slides'
 
   if &filetype !=# 'markdown'
@@ -223,7 +223,7 @@ function! mdslides#sync() abort
 endfunction
 
 function! mdslides#toggle(...) abort
-  " Optional first arg: 'slides' (default) or 'preview'.
+  " Optional first arg: 'slides' (default) or 'document'.
   let l:mode = a:0 > 0 ? a:1 : 'slides'
 
   " Only stop if the buffer we're toggling from is the one actually being

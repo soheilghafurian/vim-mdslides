@@ -154,13 +154,13 @@ function renderSlidesHtml(markdownSource) {
   return unstashMath(html);
 }
 
-// Continuous, non-slide rendering for preview mode: the whole document as
+// Continuous, non-slide rendering for document mode: the whole document as
 // one flowing HTML page instead of split into <section>s. Reuses
 // splitIntoSlides purely as a grouping utility -- the same grouping
 // buildOutline() uses -- so each group's heading gets an id matching
 // buildOutline()'s `index` exactly (id="mdslides-heading-N"), letting the
 // outline panel jump to it by scrolling instead of by deck.slide().
-function renderPreviewHtml(markdownSource) {
+function renderDocumentHtml(markdownSource) {
   if (!markdownSource.trim()) {
     return '<p><em>Empty document</em></p>';
   }
@@ -182,4 +182,4 @@ function renderPreviewHtml(markdownSource) {
   return unstashMath(html);
 }
 
-module.exports = { renderSlidesHtml, renderPreviewHtml, slideIndexForLine, buildOutline };
+module.exports = { renderSlidesHtml, renderDocumentHtml, slideIndexForLine, buildOutline };
