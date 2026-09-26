@@ -15,4 +15,5 @@ z SPECS
 - [ ] Code block syntax highlighting
 - [ ] Slide numbering / progress indicator
 - [x] Hierarchical tree of the slides on the side. It should be able to hidden or shown during the presentation.
-- [ ] When the user presses '?' in the presentation, they should see a list of the key bindings that they can use during thepresentation.
+- [ ] There is a feature similar to the side-outline, but the outline should replace the whole slide when shown.
+- [o] When the user presses '?' in the presentation, they should see a list of the key bindings that they can use during thepresentation.
