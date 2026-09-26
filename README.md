@@ -32,6 +32,28 @@ is scaled down together until it does. Nothing scrolls or gets clipped; if
 it shrinks to the point of being unreadable, that's a sign to trim the
 slide's content, not something mdslides fixes for you.
 
+### Preview mode
+
+- `:MDPreviewStart` — render the current markdown buffer as a plain,
+  continuous, normally-scrolling document instead of a slide deck — the
+  same live-updating, math/mermaid/image support, but not split into
+  slides.
+- `:MDPreviewStop` — stop the preview server.
+- `:MDPreviewToggle` — toggle preview mode; if slide mode is currently
+  running for this buffer, this switches to preview instead of just
+  stopping it.
+
+Only one session (either mode) runs at a time — starting either one stops
+whatever's currently running.
+
+### Outline / navigation
+
+Both modes share the same outline UI: press `0` for a side drawer listing
+every heading, or `9` for a full-page, foldable tree view of the whole
+document (vim-style `zo`/`zc`/`za`/`zR`/`zM`/etc. folding — press `?`
+inside it for the full list of keys). Click any entry, or a slide/heading
+index, to jump straight to it.
+
 Also supported, same as a regular markdown file:
 
 - **LaTeX math** — `$inline$` and `$$block$$` math, rendered server-side with KaTeX.

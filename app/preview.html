@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>mdslides preview</title>
+<link rel="stylesheet" href="/vendor/highlight-monokai.css">
+<link rel="stylesheet" href="/vendor/katex.min.css">
+<link rel="stylesheet" href="/outline.css">
+<style>
+  html, body {
+    margin: 0; background: #191919; color: #eee;
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  #mdslides-preview {
+    max-width: 900px; margin: 0 auto; padding: 3rem 1.5rem 8rem;
+    box-sizing: border-box;
+  }
+  #mdslides-preview img { max-width: 100%; }
+  #mdslides-preview .katex-display { margin: 0.5em 0; }
+  #mdslides-preview .mermaid { background: transparent; }
+  #mdslides-status {
+    position: fixed; bottom: 6px; right: 10px; z-index: 1000;
+    font: 11px monospace; color: #888; opacity: 0.6; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="mdslides-preview">
+__SLIDES__
+</div>
+<div id="mdslides-status">mdslides: connecting&hellip;</div>
+
+<script src="/vendor/highlight.min.js"></script>
+<script src="/vendor/mermaid.min.js"></script>
+<script>
+  window.mdslidesInitialIndex = __INITIAL_INDEX__;
+  window.mdslidesOutlineData = __OUTLINE__;
+
+  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+  // Continuous-document equivalent of Reveal's deck/slide model: "position"
+  // is which heading anchor (id="mdslides-heading-N", written by
+  // renderPreviewHtml() in render.js) is currently nearest the top of the
+  // viewport, tracked via a plain scroll listener rather than an
+  // IntersectionObserver -- simpler to reason about correctness for, and
+  // there's no meaningful performance difference at this scale.
+  let currentIndex = 0;
+  let positionChangedCallback = null;
+  let scrollScheduled = false;
+
+  function computeCurrentIndex() {
+    const anchors = document.querySelectorAll('[id^="mdslides-heading-"]');
+    let idx = 0;
+    for (const el of anchors) {
+      if (el.getBoundingClientRect().top <= 100) {
+        idx = Number(el.id.slice('mdslides-heading-'.length));
+      } else {
+        break;
+      }
+    }
+    return idx;
+  }
+
+  function onScroll() {
+    if (scrollScheduled) return;
+    scrollScheduled = true;
+    requestAnimationFrame(() => {
+      scrollScheduled = false;
+      const next = computeCurrentIndex();
+      if (next !== currentIndex) {
+        currentIndex = next;
+        if (positionChangedCallback) positionChangedCallback();
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Adapter consumed by the shared outline/fold UI in outline.js -- see
+  // that file for the contract.
+  window.mdslidesDeck = {
+    gotoIndex(index) {
+      const el = document.getElementById('mdslides-heading-' + index);
+      if (el) el.scrollIntoView({ block: 'start' });
+      currentIndex = index;
+    },
+    getCurrentIndex: () => currentIndex,
+    onPositionChanged(fn) { positionChangedCallback = fn; },
+    getTotalCount: () => document.querySelectorAll('[id^="mdslides-heading-"]').length,
+  };
+</script>
+<script src="/outline.js"></script>
+<script>
+  window.mdslidesDeck.gotoIndex(window.mdslidesInitialIndex || 0);
+  window.mdslidesOutline.init();
+
+  const statusEl = document.getElementById('mdslides-status');
+  const previewEl = document.getElementById('mdslides-preview');
+
+  const source = new EventSource('/events');
+  source.onopen = () => { statusEl.textContent = 'mdslides: live'; };
+  source.onerror = () => { statusEl.textContent = 'mdslides: disconnected'; };
+  // Cursor-follow mode (opt-in on the Vim side via g:mdslides_follow_cursor):
+  // scroll to whatever section the server says the cursor is currently
+  // under. A no-op unless the Vim side is actually sending /cursor requests.
+  source.addEventListener('goto', (ev) => {
+    const { index } = JSON.parse(ev.data);
+    if (Number.isInteger(index) && index >= 0 && index < window.mdslidesDeck.getTotalCount()) {
+      window.mdslidesDeck.gotoIndex(index);
+    }
+  });
+
+  source.addEventListener('update', (ev) => {
+    const { html, outline: newOutline } = JSON.parse(ev.data);
+    // Replacing the whole document on every edit would otherwise yank
+    // scroll position back to the top -- restore it to the same heading
+    // afterwards (same per-heading granularity limitation slide mode
+    // already has via deck.slide(), not a regression).
+    const positionToRestore = currentIndex;
+    previewEl.innerHTML = html;
+    mermaid.run({ querySelector: '.mermaid' });
+    window.mdslidesDeck.gotoIndex(positionToRestore);
+    window.mdslidesOutline.refresh(newOutline);
+    statusEl.textContent = 'mdslides: live (updated)';
+    setTimeout(() => { statusEl.textContent = 'mdslides: live'; }, 1000);
+  });
+
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+</body>
+</html>

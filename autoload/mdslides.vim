@@ -1,7 +1,9 @@
 " autoload/mdslides.vim
-" Core logic for mdslides: renders the current markdown buffer as a
-" reveal.js slide deck (one slide per heading) and live-updates it in the
-" browser as you edit.
+" Core logic for mdslides: renders the current markdown buffer in the
+" browser, live-updating as you edit, in one of two modes -- 'slides' (a
+" reveal.js deck, one slide per heading) or 'preview' (a continuous,
+" normally-scrolling document). Only one session runs at a time; starting
+" either mode stops whatever's currently running first.
 
 if !exists('g:mdslides_port')
   " 0 means "pick a free port automatically", so multiple Vim instances can
@@ -37,6 +39,9 @@ let s:browser_opened = 0
 let s:port = 0
 let s:cursor_timer = -1
 let s:initial_line = 1
+" 'slides' (reveal.js deck) or 'preview' (continuous scrolling document) --
+" whichever mode the currently-running session (if any) was started in.
+let s:mode = ''
 
 function! s:log(msg) abort
   echom '[mdslides] ' . a:msg
@@ -147,13 +152,17 @@ function! mdslides#stop() abort
   endif
   let s:tempfile = ''
   let s:port = 0
+  let s:mode = ''
   if s:cursor_timer != -1
     call timer_stop(s:cursor_timer)
     let s:cursor_timer = -1
   endif
 endfunction
 
-function! mdslides#start() abort
+function! mdslides#start(...) abort
+  " Optional first arg: 'slides' (default) or 'preview'.
+  let l:mode = a:0 > 0 ? a:1 : 'slides'
+
   if &filetype !=# 'markdown'
     call s:log('not a markdown buffer')
     return
@@ -162,13 +171,14 @@ function! mdslides#start() abort
   call mdslides#stop()
 
   let s:bufnr = bufnr('%')
+  let s:mode = l:mode
   let s:initial_line = line('.')
   let s:tempfile = tempname() . '.mdslides.md'
   call s:write_buffer_to_temp()
 
   let l:server_js = s:app_dir . '/server.js'
   let l:assets_dir = expand('%:p:h')
-  let l:cmd = ['node', l:server_js, s:tempfile, string(g:mdslides_port), l:assets_dir]
+  let l:cmd = ['node', l:server_js, s:tempfile, string(g:mdslides_port), l:assets_dir, s:mode]
   let s:browser_opened = 0
 
   if has('nvim')
@@ -212,14 +222,18 @@ function! mdslides#sync() abort
   call s:write_buffer_to_temp()
 endfunction
 
-function! mdslides#toggle() abort
+function! mdslides#toggle(...) abort
+  " Optional first arg: 'slides' (default) or 'preview'.
+  let l:mode = a:0 > 0 ? a:1 : 'slides'
+
   " Only stop if the buffer we're toggling from is the one actually being
-  " presented -- otherwise (nothing running, or a *different* buffer is
-  " being presented) switch straight to presenting the current buffer,
-  " rather than requiring a stop-then-start dance to change buffers.
-  if s:is_running() && s:bufnr == bufnr('%')
+  " presented *in the requested mode* -- otherwise (nothing running, a
+  " *different* buffer is being presented, or this buffer is presenting in
+  " the *other* mode) switch straight to presenting the current buffer in
+  " the requested mode, rather than requiring a stop-then-start dance.
+  if s:is_running() && s:bufnr == bufnr('%') && s:mode ==# l:mode
     call mdslides#stop()
   else
-    call mdslides#start()
+    call mdslides#start(l:mode)
   endif
 endfunction
