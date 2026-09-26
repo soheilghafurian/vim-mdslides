@@ -17,6 +17,16 @@
   .reveal .slides {
     text-align: left;
   }
+  /* Images sit inline by default, so the text-align:left above pins them
+     to the left same as text -- make them block-level and center them
+     within whatever they're wrapped in (typically the <p> markdown-it
+     puts an image-only line in), independent of the surrounding text
+     alignment. */
+  .reveal .slides img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
   /* Each slide's real content lives in .slide-fit, an unscaled measurement
      box that gets shrunk (never grown) via a CSS transform in JS so it
      always fits within the slide -- see fitSlide() below. */
