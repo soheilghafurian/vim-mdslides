@@ -11,13 +11,17 @@
      styled code/blockquotes/tables) -- its own design, distinct from the
      reveal-black theme slide mode uses (this is a continuous document, so
      it should read like one), using GitHub's own dark-mode palette. */
+  /* The page itself is a neutral dark gray -- the document's own dark-blue
+     background (below) only fills its own column, so the empty margin on
+     either side of it reads as surrounding page chrome, not more document. */
   html, body {
-    margin: 0; background: #0d1117; color: #e6edf3;
+    margin: 0; background: #22262b; color: #e6edf3;
     font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   }
   #mdslides-document {
     max-width: 860px; margin: 0 auto; padding: 3rem 2rem 8rem;
     box-sizing: border-box;
+    background: #0d1117; min-height: 100vh;
   }
   #mdslides-document img { max-width: 100%; box-sizing: border-box; }
   #mdslides-document h1, #mdslides-document h2, #mdslides-document h3,
