@@ -136,6 +136,11 @@
   // renderOutlineFull() each render, read by the fold commands to know
   // whether a node is foldable at all.
   let annotated = [];
+  // Notified (see renderOutlineFull()) whenever fold state may have
+  // changed -- document mode uses this to keep its own in-page folding
+  // (hiding a heading's actual content, not just its outline-tree row) in
+  // sync with the same `folded`/`foldingEnabled` state this file owns.
+  let foldChangeCallback = null;
 
   // Builds an ASCII tree-connector prefix ("|   ", "+-- ", "`-- ") for each
   // row, the same way a file-tree view draws ancestry: for every ancestor
@@ -212,6 +217,7 @@
       })
       .join('');
     applyFullOutlineRowClasses();
+    if (foldChangeCallback) foldChangeCallback();
   }
 
   // Re-applies "current" (the item the deck/scroll position is actually
@@ -286,22 +292,31 @@
   // Vim-style folding, scoped to the focused row. A plain fold only hides
   // a node's descendants -- the node's own row stays put, so refocusing it
   // by slide index after a re-render always succeeds.
+  //
+  // Not gated on item.hasChildren: that flag means "has a deeper *heading*
+  // right after it" -- true for the outline tree (nothing to show/collapse
+  // there otherwise) but wrong for document mode, where a heading with
+  // only plain body content (no subheadings) still has real content worth
+  // folding. computeVisibleOutline() above still only *acts* on `folded`
+  // for hasChildren items, so recording a fold for a leaf item here is a
+  // harmless no-op for the tree and exactly what document mode needs.
   function setFold(slideIndex, shouldFold) {
     if (slideIndex === null) return;
     const item = annotated.find((it) => it.index === slideIndex);
-    if (!item || !item.hasChildren) return;
+    if (!item) return;
     if (shouldFold) folded.add(slideIndex); else folded.delete(slideIndex);
     renderOutlineFull();
     focusRowForSlideIndex(slideIndex);
   }
 
   // zO/zC/zA: same as zo/zc/za, but also forces every descendant fold (not
-  // just the immediate node) to the same open/closed state.
+  // just the immediate node) to the same open/closed state. See setFold()
+  // above for why this isn't gated on hasChildren either.
   function setFoldRecursive(slideIndex, shouldFold) {
     if (slideIndex === null) return;
     const item = annotated.find((it) => it.index === slideIndex);
-    if (!item || !item.hasChildren) return;
-    const targets = [item, ...descendantsOf(item).filter((d) => d.hasChildren)];
+    if (!item) return;
+    const targets = [item, ...descendantsOf(item)];
     targets.forEach((t) => {
       if (shouldFold) folded.add(t.index); else folded.delete(t.index);
     });
@@ -369,8 +384,14 @@
     focusRowForSlideIndex(currentSlideIndex);
   }
 
-  function applyFoldCommand(cmd) {
-    const slideIndex = getFocusedSlideIndex();
+  // `targetIndexOverride`: when this runs from inside the full-page
+  // outline, the target for single-node commands (zo/zc/za/zO/zC/zA) is
+  // whichever row has keyboard focus there. Called from *outside* it (in
+  // document mode, folding content directly on the page), there's no such
+  // row -- the caller passes the index to act on instead (typically the
+  // current scroll position).
+  function applyFoldCommand(cmd, targetIndexOverride) {
+    const slideIndex = targetIndexOverride !== undefined ? targetIndexOverride : getFocusedSlideIndex();
     const isFolded = slideIndex !== null && folded.has(slideIndex);
     if (cmd === 'zo') setFold(slideIndex, false);
     else if (cmd === 'zc') setFold(slideIndex, true);
@@ -506,6 +527,24 @@
       outline = newOutline;
       renderOutline();
       renderOutlineFull();
+    },
+    // The rest below is what lets document mode fold content directly on
+    // the page (not just inside the full-page outline tree), reusing this
+    // file's fold *state* and *commands* without duplicating them.
+    isFolded(index) {
+      return folded.has(index);
+    },
+    isFoldingEnabled() {
+      return foldingEnabled;
+    },
+    getAnnotated() {
+      return annotated;
+    },
+    applyFoldCommand(cmd, targetIndex) {
+      applyFoldCommand(cmd, targetIndex);
+    },
+    onFoldChange(fn) {
+      foldChangeCallback = fn;
     },
   };
 })();

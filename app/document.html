@@ -77,15 +77,85 @@
   }
   #mdslides-document .katex-display { margin: 0.5em 0; overflow-x: auto; }
   #mdslides-document .mermaid { background: transparent; text-align: center; }
+  /* Click target for folding a heading's content directly on the page
+     (za), independent of whether the full-page outline is even open --
+     see applyFoldCommand()/the keydown listener below. */
+  #mdslides-document .mdslides-fold-marker {
+    display: inline-block; cursor: pointer; user-select: none;
+    color: #8b949e; font-size: 0.7em; margin-right: 0.35em;
+  }
+  #mdslides-document .mdslides-fold-marker:hover { color: #e6edf3; }
+  /* Marks whichever heading is "current" -- the same position
+     zo/zc/za/etc. and the outline's highlight already key off of (see
+     computeCurrentIndex() below) -- so it's visible on the page itself,
+     not just in the outline drawer. */
+  #mdslides-document .mdslides-current-heading {
+    border-left: 3px solid #58a6ff;
+    padding-left: 0.6em;
+    margin-left: -0.6em;
+  }
   #mdslides-status {
     position: fixed; bottom: 6px; right: 10px; z-index: 1000;
     font: 11px monospace; color: #888; opacity: 0.6; pointer-events: none;
+  }
+  /* This page's own "?" help overlay, for the in-page fold commands (see
+     the keydown listener below) -- separate from the full-page outline's
+     own help (outline.css's #mdslides-outline-full-help), which only
+     applies while that modal is open. */
+  #mdslides-document-help {
+    position: fixed; inset: 0; z-index: 980;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  /* Only applies once shown -- see the identical note on
+     #mdslides-outline-full-help in outline.css for why this can't be
+     unconditional (an ID selector would beat the UA [hidden] rule). */
+  #mdslides-document-help:not([hidden]) {
+    display: flex;
+  }
+  #mdslides-document-help .box {
+    background: #161b22; color: #e6edf3;
+    border: 1px solid #30363d; border-radius: 6px;
+    padding: 20px 28px;
+  }
+  #mdslides-document-help .title {
+    margin: 0 0 12px; font-weight: 700;
+  }
+  #mdslides-document-help table {
+    border-collapse: collapse;
+  }
+  #mdslides-document-help td {
+    padding: 3px 10px; white-space: nowrap;
+  }
+  #mdslides-document-help td:first-child {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #58a6ff; text-align: right;
   }
 </style>
 </head>
 <body>
 <div id="mdslides-document">
 __SLIDES__
+</div>
+<div id="mdslides-document-help" hidden>
+  <div class="box">
+    <p class="title">Document shortcuts</p>
+    <table>
+      <tr><td>0</td><td>Toggle side-drawer outline</td></tr>
+      <tr><td>9</td><td>Toggle full-page outline</td></tr>
+      <tr><td>zo / zc / za</td><td>Open / close / toggle fold</td></tr>
+      <tr><td>zO / zC / zA</td><td>Open / close / toggle fold, recursively</td></tr>
+      <tr><td>zj / zk</td><td>Scroll to next / previous foldable heading</td></tr>
+      <tr><td>zr / zm</td><td>Open / close one more level everywhere</td></tr>
+      <tr><td>zR / zM</td><td>Open / close all folds</td></tr>
+      <tr><td>zi</td><td>Toggle folding on/off</td></tr>
+      <tr><td>zn / zN</td><td>Folding off / on</td></tr>
+      <tr><td>zv / zx / zX</td><td>Reveal the current section</td></tr>
+      <tr><td>?</td><td>Toggle this help</td></tr>
+      <tr><td>Esc</td><td>Close this help</td></tr>
+    </table>
+  </div>
 </div>
 <div id="mdslides-status">mdslides: connecting&hellip;</div>
 
@@ -107,9 +177,25 @@ __SLIDES__
   let currentIndex = 0;
   let positionChangedCallback = null;
   let scrollScheduled = false;
+  let currentHeadingEl = null;
+
+  // Visually marks whichever heading `currentIndex` points at -- called
+  // everywhere currentIndex changes (onScroll below and gotoIndex further
+  // down), so the marked heading always tracks whatever zo/zc/za and the
+  // outline's own highlight are already keying off of.
+  function updateCurrentHeadingMark() {
+    if (currentHeadingEl) currentHeadingEl.classList.remove('mdslides-current-heading');
+    currentHeadingEl = document.getElementById('mdslides-heading-' + currentIndex);
+    if (currentHeadingEl) currentHeadingEl.classList.add('mdslides-current-heading');
+  }
 
   function computeCurrentIndex() {
-    const anchors = document.querySelectorAll('[id^="mdslides-heading-"]');
+    // :not([hidden]) matters once folding is in play -- a folded-away
+    // heading still has an id and still matches the plain selector, but
+    // getBoundingClientRect() on a display:none element always reports
+    // top:0, which would otherwise make every hidden heading look like
+    // it's "at the top of the viewport" and corrupt this entirely.
+    const anchors = document.querySelectorAll('[id^="mdslides-heading-"]:not([hidden])');
     let idx = 0;
     for (const el of anchors) {
       if (el.getBoundingClientRect().top <= 100) {
@@ -129,6 +215,7 @@ __SLIDES__
       const next = computeCurrentIndex();
       if (next !== currentIndex) {
         currentIndex = next;
+        updateCurrentHeadingMark();
         if (positionChangedCallback) positionChangedCallback();
       }
     });
@@ -142,6 +229,7 @@ __SLIDES__
       const el = document.getElementById('mdslides-heading-' + index);
       if (el) el.scrollIntoView({ block: 'start' });
       currentIndex = index;
+      updateCurrentHeadingMark();
     },
     getCurrentIndex: () => currentIndex,
     onPositionChanged(fn) { positionChangedCallback = fn; },
@@ -150,11 +238,148 @@ __SLIDES__
 </script>
 <script src="/outline.js"></script>
 <script>
+  const statusEl = document.getElementById('mdslides-status');
+  const documentEl = document.getElementById('mdslides-document');
+
+  // In-page folding: the same vim-style zo/zc/za/etc. commands available
+  // in the full-page outline, but applied directly to the document's own
+  // content -- collapsing a heading's actual body (everything up to the
+  // next heading at the same level or shallower), not just its row in a
+  // separate tree view. Reuses outline.js's fold *state* (`folded`,
+  // `foldingEnabled`) and *commands* (applyFoldCommand) via the exports on
+  // window.mdslidesOutline, rather than keeping a second copy of either.
+  //
+  // Deliberately NOT keyed on item.hasChildren -- that means "has a
+  // deeper *heading* right after it", which is what the outline tree
+  // needs (nothing to show/collapse in a tree row otherwise) but wrong
+  // here: a heading with only plain body text and no subheadings still
+  // has real content worth folding. This checks the actual DOM instead:
+  // foldable if there's anything at all before the next same-or-shallower
+  // heading (or the end of the document).
+  function hasFoldableContent(item) {
+    const headingEl = document.getElementById('mdslides-heading-' + item.index);
+    if (!headingEl) return false;
+    const next = headingEl.nextElementSibling;
+    if (!next) return false;
+    if (/^H[1-6]$/.test(next.tagName) && Number(next.tagName.slice(1)) <= item.level) return false;
+    return true;
+  }
+
+  function applyFoldVisibility() {
+    Array.from(documentEl.children).forEach((el) => { el.hidden = false; });
+    if (!window.mdslidesOutline.isFoldingEnabled()) return;
+    window.mdslidesOutline.getAnnotated().forEach((item) => {
+      if (!window.mdslidesOutline.isFolded(item.index)) return;
+      const headingEl = document.getElementById('mdslides-heading-' + item.index);
+      if (!headingEl) return;
+      // Hide every sibling from right after this heading up to (not
+      // including) the next heading at its own level or shallower -- that
+      // range is exactly this heading's "body".
+      let node = headingEl.nextElementSibling;
+      while (node) {
+        if (/^H[1-6]$/.test(node.tagName) && Number(node.tagName.slice(1)) <= item.level) break;
+        node.hidden = true;
+        node = node.nextElementSibling;
+      }
+    });
+  }
+
+  // ▾/▸ markers, clickable to toggle a fold (za), on every foldable
+  // heading. Skips the synthetic <div id="mdslides-heading-0"> wrapper
+  // renderDocumentHtml() uses for a headingless preamble -- there's no
+  // real heading element there to prepend a marker onto.
+  function updateFoldMarkers() {
+    window.mdslidesOutline.getAnnotated().forEach((item) => {
+      const headingEl = document.getElementById('mdslides-heading-' + item.index);
+      if (!headingEl || headingEl.tagName === 'DIV') return;
+      let marker = headingEl.querySelector(':scope > .mdslides-fold-marker');
+      if (!hasFoldableContent(item)) {
+        if (marker) marker.remove();
+        return;
+      }
+      if (!marker) {
+        marker = document.createElement('span');
+        marker.className = 'mdslides-fold-marker';
+        marker.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          window.mdslidesOutline.applyFoldCommand('za', item.index);
+        });
+        headingEl.prepend(marker);
+      }
+      marker.textContent = window.mdslidesOutline.isFolded(item.index) ? '▸' : '▾';
+    });
+  }
+
+  function onFoldStateChanged() {
+    applyFoldVisibility();
+    updateFoldMarkers();
+    // Content just above the viewport may have collapsed or expanded,
+    // shifting what's actually at the top without a native scroll event.
+    onScroll();
+  }
+  // Registered before init() so its first render (inside init()) already
+  // applies fold state, rather than needing a separate call right after.
+  window.mdslidesOutline.onFoldChange(onFoldStateChanged);
+
   window.mdslidesDeck.gotoIndex(window.mdslidesInitialIndex || 0);
   window.mdslidesOutline.init();
 
-  const statusEl = document.getElementById('mdslides-status');
-  const documentEl = document.getElementById('mdslides-document');
+  // zj/zk outside the full-page outline: scroll straight to the next/
+  // previous foldable heading (wrapping around), instead of moving
+  // keyboard focus over an outline row that isn't even showing.
+  function moveToFoldableHeading(delta) {
+    const indices = window.mdslidesOutline.getAnnotated()
+      .filter(hasFoldableContent)
+      .map((item) => item.index);
+    if (!indices.length) return;
+    const current = window.mdslidesDeck.getCurrentIndex();
+    let target;
+    if (delta > 0) {
+      target = indices.find((i) => i > current);
+    } else {
+      target = [...indices].reverse().find((i) => i < current);
+    }
+    if (target === undefined) {
+      target = delta > 0 ? indices[0] : indices[indices.length - 1];
+    }
+    window.mdslidesDeck.gotoIndex(target);
+  }
+
+  const documentHelpEl = document.getElementById('mdslides-document-help');
+  function setDocumentHelpVisible(visible) {
+    documentHelpEl.hidden = !visible;
+  }
+
+  // Lets the same z-prefixed fold commands (and their own "?" help) work
+  // while just reading the page, not only inside the full-page outline
+  // modal -- outline.js's own keydown listener already owns all keys
+  // *while that modal is open* (including "0"/"9" when it's closed), so
+  // this only needs to act when the modal is hidden.
+  const FOLD_MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'OS']);
+  let pendingFoldPrefix = false;
+  document.addEventListener('keydown', (ev) => {
+    const outlineFullEl = document.getElementById('mdslides-outline-full');
+    if (outlineFullEl && !outlineFullEl.hidden) return;
+    if (FOLD_MODIFIER_KEYS.has(ev.key) || ev.repeat) return;
+
+    if (pendingFoldPrefix) {
+      pendingFoldPrefix = false;
+      const cmd = 'z' + ev.key;
+      if (cmd === 'zj') moveToFoldableHeading(1);
+      else if (cmd === 'zk') moveToFoldableHeading(-1);
+      else window.mdslidesOutline.applyFoldCommand(cmd, window.mdslidesDeck.getCurrentIndex());
+      ev.preventDefault();
+    } else if (!documentHelpEl.hidden) {
+      if (ev.key === 'Escape' || ev.key === '?') setDocumentHelpVisible(false);
+      ev.preventDefault();
+    } else if (ev.key === 'z') {
+      pendingFoldPrefix = true;
+      ev.preventDefault();
+    } else if (ev.key === '?') {
+      setDocumentHelpVisible(true);
+      ev.preventDefault();
+    }
+  });
 
   const source = new EventSource('/events');
   source.onopen = () => { statusEl.textContent = 'mdslides: live'; };
