@@ -20,16 +20,58 @@
   transform: translateX(0);
 }
 #mdslides-outline a {
-  display: block; color: #ccc; text-decoration: none;
+  display: block; position: relative; color: #ccc; text-decoration: none;
   padding: 4px 8px; border-radius: 3px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #mdslides-outline a:hover {
-  background: rgba(255, 255, 255, 0.08);
+  /* background-color, not the `background` shorthand -- that would reset
+     the guide-line background-image below to `none`. */
+  background-color: rgba(255, 255, 255, 0.08);
 }
+/* One thin guide line per ancestor level, the same idea as the full-page
+   outline's ASCII "|" tree connectors (computeTreeGuides in outline.js)
+   but drawn as real vertical lines instead of characters, since 14px per
+   level doesn't leave room for text connectors. A repeating pattern
+   rather than N separate elements, since each row can only have so many
+   pseudo-elements: --outline-guide-width (set per row in outline.js,
+   (level-1) * the 14px indent step) crops the pattern to exactly one line
+   per ancestor level. Root-level items get width 0 -- no lines. Each line
+   sits at the *start* of its 14px step (not the end) so there's always a
+   13px gap before the next line/the text -- putting it at the end made
+   the line run right up against the text with no breathing room. */
+#mdslides-outline a[data-level] {
+  background-repeat: no-repeat;
+  background-position: 8px 2px;
+  background-size: var(--outline-guide-width, 0px) calc(100% - 4px);
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.15) 0, rgba(255, 255, 255, 0.15) 1px,
+    transparent 1px, transparent 14px
+  );
+}
+/* Typography steps down by heading level, same idea as the full-page
+   outline: hierarchy should read from size/weight, not indentation alone. */
+#mdslides-outline a[data-level] {
+  font-weight: 400; opacity: 0.7;
+}
+#mdslides-outline a[data-level="0"],
+#mdslides-outline a[data-level="1"] {
+  font-weight: 700; opacity: 1;
+}
+#mdslides-outline a[data-level="2"] {
+  font-weight: 600; opacity: 0.92;
+}
+#mdslides-outline a[data-level="3"] {
+  font-weight: 400; opacity: 0.85;
+}
+/* Overrides the level-based dimming above -- must come after it in source
+   order since both are equally specific (element + one attribute/class). */
 #mdslides-outline a.current {
-  color: #fff; font-weight: bold;
-  background: rgba(255, 255, 255, 0.15);
+  color: #fff; font-weight: bold; opacity: 1;
+  /* background-color, not `background` -- see the comment above the
+     guide-line rule; this rule must not reset its background-image. */
+  background-color: rgba(255, 255, 255, 0.15);
 }
 #mdslides-outline-toggle {
   position: fixed; top: 8px; left: 10px; z-index: 960;

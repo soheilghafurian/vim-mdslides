@@ -69,7 +69,13 @@
     outlineEl.innerHTML = outline
       .map((item) => {
         const indent = 8 + Math.max(0, item.level - 1) * 14;
-        return `<a href="#" data-index="${item.index}" style="padding-left:${indent}px">${escapeHtml(item.text)}</a>`;
+        // One guide line per ancestor level (a level-2 item shows one line
+        // for its level-1 parent, a level-3 item shows two, etc.). Width =
+        // (level - 1) * 14px crops the repeating-linear-gradient in
+        // outline.css to exactly that many lines (0 for root-level items).
+        const guideWidth = Math.max(0, item.level - 1) * 14;
+        const style = `padding-left:${indent}px;--outline-guide-width:${guideWidth}px`;
+        return `<a href="#" data-index="${item.index}" data-level="${item.level}" style="${style}">${escapeHtml(item.text)}</a>`;
       })
       .join('');
     updateOutlineCurrent();
