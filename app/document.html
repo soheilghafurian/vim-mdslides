@@ -230,6 +230,12 @@ __SLIDES__
       if (el) el.scrollIntoView({ block: 'start' });
       currentIndex = index;
       updateCurrentHeadingMark();
+      // Notify directly rather than counting on onScroll() to notice the
+      // change: currentIndex is already updated above, so by the time the
+      // scroll this triggers actually fires, onScroll's own before/after
+      // comparison sees no difference and would otherwise never tell the
+      // outline (side drawer, full-page tree) to move its highlight.
+      if (positionChangedCallback) positionChangedCallback();
     },
     getCurrentIndex: () => currentIndex,
     onPositionChanged(fn) { positionChangedCallback = fn; },
