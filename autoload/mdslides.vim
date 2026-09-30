@@ -197,6 +197,9 @@ function! mdslides#start(...) abort
   augroup mdslides_autoupdate
     execute 'autocmd! * <buffer=' . s:bufnr . '>'
     execute 'autocmd TextChanged,TextChangedI,InsertLeave,BufWritePost <buffer=' . s:bufnr . '> call mdslides#sync()'
+    " :e (or autoread) reloading the file from disk doesn't fire TextChanged,
+    " so pick those reloads up explicitly.
+    execute 'autocmd BufReadPost,FileChangedShellPost <buffer=' . s:bufnr . '> call mdslides#sync()'
     execute 'autocmd BufWipeout <buffer=' . s:bufnr . '> call mdslides#stop()'
     if g:mdslides_follow_cursor
       execute 'autocmd CursorMoved,CursorMovedI <buffer=' . s:bufnr . '> call s:on_cursor_moved()'
