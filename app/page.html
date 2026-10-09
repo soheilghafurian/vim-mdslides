@@ -11,6 +11,12 @@
 <style>
   .reveal .katex-display { margin: 0.5em 0; }
   .reveal .mermaid { background: transparent; }
+  /* Mermaid sizes each node box by measuring its label *outside* the
+     .reveal tree, then drops the svg in here. Its labels are <p> elements,
+     and reveal's `.reveal p` rule (20px block margins, line-height 1.3)
+     then applies only after measuring -- shifting the text down and
+     clipping it inside the too-small box. Reset it for diagram labels. */
+  .reveal .mermaid p { margin: 0; line-height: inherit; }
   /* reveal.css defaults .reveal .slides to text-align:center, centering
      every heading, paragraph, and list item. Override it so slide text
      reads left-aligned, like a normal document. */
