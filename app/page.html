@@ -72,7 +72,17 @@ __SLIDES__
   window.mdslidesInitialIndex = __INITIAL_INDEX__;
   window.mdslidesOutlineData = __OUTLINE__;
 
-  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  // htmlLabels:false renders labels as SVG <text> sized from the real glyph
+  // bounding box instead of HTML in a <foreignObject>. The foreignObject
+  // route clips long unbroken labels (e.g. snake_case task/table names)
+  // whenever the font it measured with differs from the one it ends up
+  // rendered in under .reveal.
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    htmlLabels: false,
+    flowchart: { htmlLabels: false },
+  });
 
   // Set server-side from the cursor line Vim was on when :MDSlidesStart
   // ran. Reveal (hash: true, below) reads location.hash as part of its own
