@@ -10,7 +10,19 @@
 <link rel="stylesheet" href="/outline.css">
 <style>
   .reveal .katex-display { margin: 0.5em 0; }
-  .reveal .mermaid { background: transparent; }
+  .reveal .mermaid { background: transparent; cursor: zoom-in; }
+  /* Clicking a diagram shows a copy of it here, scaled to fill the window
+     -- see the click listener below. Lives on <body>, outside .reveal, so
+     the slide's fit transform doesn't apply to it. */
+  #mdslides-mermaid-full {
+    position: fixed; inset: 0; z-index: 990;
+    padding: 2vmin; box-sizing: border-box;
+    background: #111; cursor: zoom-out;
+  }
+  #mdslides-mermaid-full:not([hidden]) { display: flex; }
+  #mdslides-mermaid-full svg {
+    width: 100%; height: 100%; max-width: none !important;
+  }
   /* Mermaid sizes each node box by measuring its label *outside* the
      .reveal tree, then drops the svg in here. Its labels are <p> elements,
      and reveal's `.reveal p` rule (20px block margins, line-height 1.3)
@@ -192,7 +204,34 @@ __SLIDES__
   // takes over entirely (and never reaches this listener) whenever the
   // full-page outline is open, so this only ever applies in plain slide
   // viewing.
+  // Click a mermaid diagram to view it full-window; Escape or any click
+  // closes it. Delegated on document so it survives live-update innerHTML
+  // swaps. The capture-phase keydown below swallows every key while it's
+  // open so Reveal doesn't change slides underneath.
+  const mermaidFullEl = document.createElement('div');
+  mermaidFullEl.id = 'mdslides-mermaid-full';
+  mermaidFullEl.hidden = true;
+  document.body.appendChild(mermaidFullEl);
+  function closeMermaidFull() {
+    mermaidFullEl.hidden = true;
+    mermaidFullEl.textContent = '';
+  }
+  mermaidFullEl.addEventListener('click', closeMermaidFull);
+  document.addEventListener('click', (ev) => {
+    const svg = ev.target.closest && ev.target.closest('.mermaid svg');
+    if (!svg) return;
+    mermaidFullEl.textContent = '';
+    mermaidFullEl.appendChild(svg.cloneNode(true));
+    mermaidFullEl.hidden = false;
+  });
+
   document.addEventListener('keydown', (ev) => {
+    if (!mermaidFullEl.hidden) {
+      if (ev.key === 'Escape') closeMermaidFull();
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
     if (ev.key === 'Escape' && !deck.isOverlayOpen()) {
       const outlineFullEl = document.getElementById('mdslides-outline-full');
       if (!outlineFullEl || outlineFullEl.hidden) {

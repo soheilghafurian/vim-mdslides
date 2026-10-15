@@ -76,7 +76,18 @@
     background: #30363d; border: 0;
   }
   #mdslides-document .katex-display { margin: 0.5em 0; overflow-x: auto; }
-  #mdslides-document .mermaid { background: transparent; text-align: center; }
+  #mdslides-document .mermaid { background: transparent; text-align: center; cursor: zoom-in; }
+  /* Clicking a diagram shows a copy of it here, scaled to fill the
+     window -- see the click listener below. */
+  #mdslides-mermaid-full {
+    position: fixed; inset: 0; z-index: 990;
+    padding: 2vmin; box-sizing: border-box;
+    background: #0d1117; cursor: zoom-out;
+  }
+  #mdslides-mermaid-full:not([hidden]) { display: flex; }
+  #mdslides-mermaid-full svg {
+    width: 100%; height: 100%; max-width: none !important;
+  }
   /* Click target for folding a heading's content directly on the page
      (za), independent of whether the full-page outline is even open --
      see applyFoldCommand()/the keydown listener below. */
@@ -166,7 +177,14 @@ __SLIDES__
   window.mdslidesOutlineData = __OUTLINE__;
 
   // 'dark' matches this mode's dark, GitHub-style document look.
-  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  // htmlLabels:false: SVG <text> labels are sized from the real glyphs, so
+  // long unbroken names can't be clipped by a mis-measured <foreignObject>.
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    htmlLabels: false,
+    flowchart: { htmlLabels: false },
+  });
 
   // Continuous-document equivalent of Reveal's deck/slide model: "position"
   // is which heading anchor (id="mdslides-heading-N", written by
@@ -361,9 +379,35 @@ __SLIDES__
   // modal -- outline.js's own keydown listener already owns all keys
   // *while that modal is open* (including "0"/"9" when it's closed), so
   // this only needs to act when the modal is hidden.
+  // Click a mermaid diagram to view it full-window; Escape or any
+  // click closes it. Delegated on document so it survives the live-update
+  // innerHTML swap.
+  const mermaidFullEl = document.createElement('div');
+  mermaidFullEl.id = 'mdslides-mermaid-full';
+  mermaidFullEl.hidden = true;
+  document.body.appendChild(mermaidFullEl);
+  function closeMermaidFull() {
+    mermaidFullEl.hidden = true;
+    mermaidFullEl.textContent = '';
+  }
+  mermaidFullEl.addEventListener('click', closeMermaidFull);
+  document.addEventListener('click', (ev) => {
+    const svg = ev.target.closest && ev.target.closest('.mermaid svg');
+    if (!svg) return;
+    window.getSelection().removeAllRanges();
+    mermaidFullEl.textContent = '';
+    mermaidFullEl.appendChild(svg.cloneNode(true));
+    mermaidFullEl.hidden = false;
+  });
+
   const FOLD_MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'OS']);
   let pendingFoldPrefix = false;
   document.addEventListener('keydown', (ev) => {
+    if (!mermaidFullEl.hidden) {
+      if (ev.key === 'Escape') closeMermaidFull();
+      ev.preventDefault();
+      return;
+    }
     const outlineFullEl = document.getElementById('mdslides-outline-full');
     if (outlineFullEl && !outlineFullEl.hidden) return;
     if (FOLD_MODIFIER_KEYS.has(ev.key) || ev.repeat) return;

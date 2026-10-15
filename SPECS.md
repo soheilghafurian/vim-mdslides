@@ -23,4 +23,5 @@ z SPECS
 - [x] Document mode shares the outline side-drawer and full-page outline (with folding) with slide mode
 - [x] Document mode live-updates in the browser on buffer edit/save, no manual refresh
 - [x] Document mode supports LaTeX math, Mermaid diagrams, and relative image paths, same as slide mode
+- [x] Click a Mermaid diagram (slide or document mode) to view it full-window (Escape or click closes)
 - [x] Document mode has its own GitHub-flavored light styling (not inherited from slide mode's dark theme)
