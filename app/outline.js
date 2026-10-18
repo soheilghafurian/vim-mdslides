@@ -23,14 +23,14 @@
 
   // Hierarchical outline/tree panel listing every heading, indented by
   // level, so the presenter can jump straight to a slide. Toggled via the
-  // on-screen button or the "0" key; rebuilt whenever the deck updates
+  // on-screen button or the "1" key; rebuilt whenever the deck updates
   // (headings may have been added/removed/retitled) or the position
   // changes (to keep the "current" highlight in sync).
   let outline = window.mdslidesOutlineData || [];
 
   const OUTLINE_MARKUP = `
-<button id="mdslides-outline-toggle" title="Toggle outline (0)">&#9776;</button>
-<button id="mdslides-outline-full-toggle" title="Toggle full-page outline (9)">&#8862;</button>
+<button id="mdslides-outline-toggle" title="Toggle outline (1)">&#9776;</button>
+<button id="mdslides-outline-full-toggle" title="Toggle full-page outline (2)">&#8862;</button>
 <nav id="mdslides-outline"></nav>
 <nav id="mdslides-outline-full" hidden></nav>
 <div id="mdslides-outline-full-help" hidden>
@@ -49,7 +49,7 @@
       <tr><td>zn / zN</td><td>Folding off / on</td></tr>
       <tr><td>zv / zx / zX</td><td>Reveal the current slide</td></tr>
       <tr><td>?</td><td>Toggle this help</td></tr>
-      <tr><td>Esc, 9</td><td>Close outline</td></tr>
+      <tr><td>Esc, 2</td><td>Close outline</td></tr>
     </table>
   </div>
 </div>`;
@@ -110,7 +110,7 @@
   // Full-page outline: the same heading list as the side drawer, but as a
   // full-viewport view replacing the slide entirely -- easier to scan on a
   // long deck. It's a self-contained little modal: arrow keys/j/k move a
-  // "focused" row, Enter jumps to it, Escape/9/click-outside-a-link close
+  // "focused" row, Enter jumps to it, Escape/2/click-outside-a-link close
   // it. While open, a capturing keydown listener swallows every key before
   // Reveal's own (bubbling) keyboard handler sees it (slide mode only --
   // document mode has no such handler to worry about), so things like
@@ -458,13 +458,13 @@
   let pendingFoldPrefix = false;
   document.addEventListener('keydown', (ev) => {
     if (!isOutlineFullVisible()) {
-      // The side drawer's own toggle ("0") and the full outline's open key
-      // ("9") work even when the full outline itself isn't open yet.
-      if (ev.key === '0') {
+      // The side drawer's own toggle ("1") and the full outline's open key
+      // ("2") work even when the full outline itself isn't open yet.
+      if (ev.key === '1') {
         setOutlineVisible(!outlineEl.classList.contains('visible'));
         ev.preventDefault();
         ev.stopPropagation();
-      } else if (ev.key === '9') {
+      } else if (ev.key === '2') {
         setOutlineFullVisible(true);
         ev.preventDefault();
         ev.stopPropagation();
@@ -498,7 +498,7 @@
       pendingFoldPrefix = true;
     } else if (ev.key === '?') {
       setOutlineHelpVisible(true);
-    } else if (ev.key === 'Escape' || ev.key === '9') {
+    } else if (ev.key === 'Escape' || ev.key === '2') {
       setOutlineFullVisible(false);
     } else if (ev.key === 'ArrowDown' || ev.key === 'j') {
       moveFullFocus(1);

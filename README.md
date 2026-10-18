@@ -49,8 +49,8 @@ whatever's currently running.
 
 ### Outline / navigation
 
-Both modes share the same outline UI: press `0` for a side drawer listing
-every heading, or `9` for a full-page, foldable tree view of the whole
+Both modes share the same outline UI: press `1` for a side drawer listing
+every heading, or `2` for a full-page, foldable tree view of the whole
 document (vim-style `zo`/`zc`/`za`/`zR`/`zM`/etc. folding — press `?`
 inside it for the full list of keys). Click any entry, or a slide/heading
 index, to jump straight to it.
