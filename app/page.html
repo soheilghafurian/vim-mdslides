@@ -165,6 +165,19 @@ __SLIDES__
     fitSlide(deck.getCurrentSlide());
   }
 
+  // Mermaid measures text with getBBox(), which reports zeros inside a
+  // display:none ancestor -- and reveal hides every slide but the current
+  // one. Rendering all diagrams upfront therefore left diagrams on other
+  // slides collapsed to a speck (viewBox 16x16 for a graph that should be
+  // thousands of px wide). So render only the visible slide's pending
+  // diagrams, on demand, then refit.
+  function renderMermaid(section) {
+    if (!section) return Promise.resolve();
+    const nodes = section.querySelectorAll('.mermaid:not([data-processed])');
+    if (!nodes.length) return Promise.resolve();
+    return mermaid.run({ nodes: Array.from(nodes) }).then(fitCurrentSlide);
+  }
+
   // Images affect content height only once they've loaded; refit when they
   // do (harmless no-op if the slide already fit without them).
   function watchImages(section) {
@@ -244,13 +257,14 @@ __SLIDES__
   deck.initialize().then(() => {
     fitCurrentSlide();
     watchImages(deck.getCurrentSlide());
-    mermaid.run({ querySelector: '.mermaid' }).then(fitCurrentSlide);
+    renderMermaid(deck.getCurrentSlide());
     window.mdslidesOutline.init();
   });
 
   deck.on('slidechanged', (event) => {
     fitSlide(event.currentSlide);
     watchImages(event.currentSlide);
+    renderMermaid(event.currentSlide);
   });
 
   window.addEventListener('resize', fitCurrentSlide);
@@ -278,7 +292,7 @@ __SLIDES__
     deck.sync();
     const h = Math.min(indices.h, deck.getTotalSlides() - 1);
     deck.slide(Math.max(h, 0), indices.v || 0);
-    mermaid.run({ querySelector: '.mermaid' }).then(fitCurrentSlide);
+    renderMermaid(deck.getCurrentSlide());
     fitCurrentSlide();
     watchImages(deck.getCurrentSlide());
     window.mdslidesOutline.refresh(newOutline);
