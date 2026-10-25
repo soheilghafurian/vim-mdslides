@@ -13,11 +13,13 @@ command! -bar MDSlidesStart call mdslides#start('slides')
 command! -bar MDSlidesStop call mdslides#stop()
 command! -bar MDSlidesToggle call mdslides#toggle('slides')
 
+command! -bar MDSlidesStopAll call mdslides#stop_all()
+
 command! -bar MDDocumentStart call mdslides#start('document')
 command! -bar MDDocumentStop call mdslides#stop()
 command! -bar MDDocumentToggle call mdslides#toggle('document')
 
 augroup mdslides_cleanup
   autocmd!
-  autocmd VimLeavePre * call mdslides#stop()
+  autocmd VimLeavePre * call mdslides#stop_all()
 augroup END

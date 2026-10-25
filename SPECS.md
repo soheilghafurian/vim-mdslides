@@ -2,6 +2,7 @@ z SPECS
 
 - [x] `:MDSlidesStart` renders the current markdown buffer as slides and opens it in the browser
 - [x] `:MDSlidesStop` stops the presentation server
+- [x] Each buffer gets its own session and browser tab (e.g. `:bufdo MDSlidesStart`); `:MDSlidesStopAll` stops them all
 - [x] `:MDSlidesToggle` toggles between start and stop
 - [x] Every heading (`#`-`######`) starts a new slide
 - [x] Deck is strictly linear (space/→ forward, ← back), no grid navigation

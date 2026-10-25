@@ -21,7 +21,8 @@ Plugin 'soheilghafurian/vim-mdslides'
   it in your browser. Every heading, at any level (`#` through `######`),
   starts a new slide. The deck live-updates in the browser as you edit and
   save, without a manual refresh.
-- `:MDSlidesStop` — stop the presentation server.
+- `:MDSlidesStop` — stop the current buffer's presentation server.
+- `:MDSlidesStopAll` — stop every buffer's presentation server.
 - `:MDSlidesToggle` — toggle between the two.
 
 The deck is strictly linear — space / → to move forward, ← to go back.
@@ -44,8 +45,9 @@ slide's content, not something mdslides fixes for you.
   running for this buffer, this switches to document mode instead of just
   stopping it.
 
-Only one session (either mode) runs at a time — starting either one stops
-whatever's currently running.
+Each buffer has its own session (and browser tab), so `:bufdo MDSlidesStart`
+opens one rendering per buffer. Starting a buffer that's already presenting
+restarts just that buffer's session.
 
 ### Outline / navigation
 
