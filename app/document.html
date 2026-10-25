@@ -75,7 +75,7 @@
     height: 0.25em; padding: 0; margin: 24px 0;
     background: #30363d; border: 0;
   }
-  #mdslides-document .katex-display { margin: 0.5em 0; overflow-x: auto; }
+  #mdslides-document .katex-display { margin: 0.5em 0; }
   #mdslides-document .mermaid { background: transparent; text-align: center; cursor: zoom-in; }
   /* Clicking a diagram shows a copy of it here, scaled to fill the
      window -- see the click listener below. */
@@ -444,6 +444,24 @@ __SLIDES__
     }
   });
 
+  // A display formula never wraps, so one wider than the page would need a
+  // scrollbar -- meaningless for math. Shrink it to fit the width instead
+  // (never enlarge). `zoom` (unlike a transform) also shrinks the layout
+  // box, so no blank space is left behind.
+  function fitMath() {
+    documentEl.querySelectorAll('.katex-display > .katex').forEach((el) => {
+      el.style.zoom = '';
+      const html = el.querySelector('.katex-html');
+      const natural = Math.max(el.scrollWidth, html ? html.scrollWidth : 0);
+      const avail = el.parentElement.clientWidth;
+      if (natural > avail && natural > 0) el.style.zoom = String(avail / natural);
+    });
+  }
+  window.addEventListener('resize', fitMath);
+  // KaTeX's web fonts change glyph widths once loaded.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitMath);
+  fitMath();
+
   source.addEventListener('update', (ev) => {
     const { html, outline: newOutline } = JSON.parse(ev.data);
     // Replacing the whole document on every edit would otherwise yank
@@ -452,6 +470,8 @@ __SLIDES__
     // already has via deck.slide(), not a regression).
     const positionToRestore = currentIndex;
     documentEl.innerHTML = html;
+    fitMath();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitMath);
     mermaid.run({ querySelector: '.mermaid' });
     window.mdslidesDeck.gotoIndex(positionToRestore);
     window.mdslidesOutline.refresh(newOutline);
