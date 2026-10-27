@@ -145,6 +145,17 @@ __SLIDES__
     plugins: [RevealHighlight],
   });
 
+  // List outline.js's keys in reveal's "?" help. outline.js's capture-phase
+  // listener handles them and stops propagation, so these callbacks never
+  // run -- the bindings exist only to put the rows in the help overlay.
+  [
+    [49, '1', 'Toggle side-drawer outline'],
+    [50, '2', 'Toggle full-page outline'],
+    [84, 'T', 'Toggle light / dark theme'],
+  ].forEach(([keyCode, key, description]) => {
+    deck.addKeyBinding({ keyCode, key, description }, () => {});
+  });
+
   // Shrinks a slide's content (text, images, diagrams -- everything) down
   // via a CSS transform if it doesn't fit, so slides never scroll or clip.
   // Content is never scaled *up* -- a slide with little content just shows
