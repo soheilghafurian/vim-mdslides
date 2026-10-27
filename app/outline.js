@@ -48,6 +48,7 @@
       <tr><td>zi</td><td>Toggle folding on/off</td></tr>
       <tr><td>zn / zN</td><td>Folding off / on</td></tr>
       <tr><td>zv / zx / zX</td><td>Reveal the current slide</td></tr>
+      <tr><td>t</td><td>Toggle light / dark theme</td></tr>
       <tr><td>?</td><td>Toggle this help</td></tr>
       <tr><td>Esc, 2</td><td>Close outline</td></tr>
     </table>
@@ -456,7 +457,25 @@
   // letter that follows.
   const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'OS']);
   let pendingFoldPrefix = false;
+
+  // Light/dark theme, shared by both modes: "t" toggles a .light class on
+  // <html> (each page's CSS keys off it), remembered across reloads, and
+  // pages re-theme anything the CSS can't reach (mermaid) by listening for
+  // mdslides-themechange.
+  function toggleTheme() {
+    const light = document.documentElement.classList.toggle('light');
+    try { localStorage.setItem('mdslides-theme', light ? 'light' : 'dark'); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('mdslides-themechange', { detail: { light } }));
+  }
+
   document.addEventListener('keydown', (ev) => {
+    if (ev.key === 't' && !ev.repeat && !ev.metaKey && !ev.ctrlKey && !ev.altKey
+        && !pendingFoldPrefix && outlineHelpEl.hidden) {
+      toggleTheme();
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
     if (!isOutlineFullVisible()) {
       // The side drawer's own toggle ("1") and the full outline's open key
       // ("2") work even when the full outline itself isn't open yet.

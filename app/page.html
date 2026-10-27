@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/vendor/highlight-monokai.css">
 <link rel="stylesheet" href="/vendor/katex.min.css">
 <link rel="stylesheet" href="/outline.css">
+<script>try { if (localStorage.getItem("mdslides-theme") === "light") document.documentElement.classList.add("light"); } catch (e) {}</script>
 <style>
   .reveal .katex-display { margin: 0.5em 0; }
   .reveal .mermaid { background: transparent; cursor: zoom-in; }
@@ -18,6 +19,18 @@
     position: fixed; inset: 0; z-index: 990;
     padding: 2vmin; box-sizing: border-box;
     background: #111; cursor: zoom-out;
+  }
+  :root.light #mdslides-mermaid-full { background: #fff; }
+  /* Light theme: reveal-black's palette is all CSS variables. */
+  :root.light {
+    --r-background-color: #fff;
+    --r-main-color: #222;
+    --r-heading-color: #222;
+    --r-link-color: #2a76dd;
+    --r-link-color-dark: #1a53a1;
+    --r-link-color-hover: #6ca0e8;
+    --r-selection-background-color: rgba(42, 118, 221, 0.35);
+    --r-selection-color: #000;
   }
   #mdslides-mermaid-full:not([hidden]) { display: flex; }
   #mdslides-mermaid-full svg {
@@ -91,7 +104,7 @@ __SLIDES__
   // rendered in under .reveal.
   mermaid.initialize({
     startOnLoad: false,
-    theme: 'dark',
+    theme: document.documentElement.classList.contains('light') ? 'default' : 'dark',
     htmlLabels: false,
     flowchart: { htmlLabels: false },
   });
@@ -268,6 +281,23 @@ __SLIDES__
   });
 
   window.addEventListener('resize', fitCurrentSlide);
+
+  // Mermaid bakes its theme into the svg, so switching theme means
+  // re-rendering each diagram from its source (kept in data-src). Only the
+  // visible slide can be measured; others re-render when visited.
+  document.addEventListener('mdslides-themechange', (ev) => {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: ev.detail.light ? 'default' : 'dark',
+      htmlLabels: false,
+      flowchart: { htmlLabels: false },
+    });
+    slidesEl.querySelectorAll('.mermaid[data-processed]').forEach((el) => {
+      el.textContent = el.dataset.src;
+      el.removeAttribute('data-processed');
+    });
+    renderMermaid(deck.getCurrentSlide());
+  });
 
   const statusEl = document.getElementById('mdslides-status');
   const slidesEl = document.getElementById('mdslides-slides');
