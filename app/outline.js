@@ -48,6 +48,7 @@
       <tr><td>zi</td><td>Toggle folding on/off</td></tr>
       <tr><td>zn / zN</td><td>Folding off / on</td></tr>
       <tr><td>zv / zx / zX</td><td>Reveal the current slide</td></tr>
+      <tr><td>f</td><td>Toggle fullscreen</td></tr>
       <tr><td>t</td><td>Toggle light / dark theme</td></tr>
       <tr><td>?</td><td>Toggle this help</td></tr>
       <tr><td>Esc, 2</td><td>Close outline</td></tr>
@@ -468,7 +469,21 @@
     document.dispatchEvent(new CustomEvent('mdslides-themechange', { detail: { light } }));
   }
 
+  // "f" toggles browser fullscreen, shared by both modes. Handled here so
+  // it behaves the same in each (and replaces Reveal's own "f").
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  }
+
   document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'f' && !ev.repeat && !ev.metaKey && !ev.ctrlKey && !ev.altKey
+        && !pendingFoldPrefix && outlineHelpEl.hidden) {
+      toggleFullscreen();
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
     if (ev.key === 't' && !ev.repeat && !ev.metaKey && !ev.ctrlKey && !ev.altKey
         && !pendingFoldPrefix && outlineHelpEl.hidden) {
       toggleTheme();

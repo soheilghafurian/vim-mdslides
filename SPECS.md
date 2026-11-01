@@ -27,3 +27,4 @@ z SPECS
 - [x] Click a Mermaid diagram (slide or document mode) to view it full-window (Escape or click closes)
 - [x] Document mode has its own GitHub-flavored light styling (not inherited from slide mode's dark theme)
 - [x] Press `t` in slide or document mode to toggle between the dark (default) and a light theme; the choice is remembered across reloads
+- [x] Press `f` in slide or document mode to toggle browser fullscreen
